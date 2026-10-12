@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Mark LPG Services - Admin</title>
+<style>
+:root{--bg:#fffaf5;--card:#fff;--ink:#1f1a17;--mute:#6b5f57;--brand:#e8590c;--line:#f0e0d2}
+@media(prefers-color-scheme:dark){:root{--bg:#17120f;--card:#221b17;--ink:#f6ece4;--mute:#b9a99d;--brand:#ff8a3d;--line:#3a2d25}}
+*{box-sizing:border-box}body{margin:0 auto;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;padding:16px;max-width:900px}
+input,button{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{cursor:pointer;background:var(--brand);color:#fff;border:0;font-weight:600}button.g{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.r{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}img{max-width:100%;max-height:260px;border-radius:10px;margin-top:8px;display:block}
+[hidden]{display:none!important}h1{font-size:22px}.tag{display:inline-block;background:var(--brand);color:#fff;border-radius:99px;padding:2px 10px;font-size:12px}
+</style></head><body>
+<h1>Mark LPG Services Admin</h1>
+<form id="lf" class="c"><input id="em" type="email" placeholder="Admin email" required> <input id="pw" type="password" placeholder="Password" required> <button>Sign in</button><div id="le"></div></form>
+<div id="app" hidden>
+<div class="r"><button class="g" id="tO">Orders</button><button class="g" id="tR">Reviews</button><button class="g" id="pg">Delete photos older than 30 days</button><button class="g" id="so">Sign out</button></div>
+<div id="ol"></div><div id="rl" hidden></div></div>
+<script>
+var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"}; /* paste the same Firebase web config as the main page */
+var $=function(i){return document.getElementById(i)},ST=["confirmed","out for delivery","delivered","cancelled"],db,au,sto,watching=false;
+function E(t,x,c){var e=document.createElement(t);if(x!==undefined)e.textContent=x;if(c)e.className=c;return e}
+function B(t,fn,g){var b=E("button",t);if(g)b.className="g";b.onclick=fn;return b}
+function load(n){return n.reduce(function(p,k){return p.then(function(){return new Promise(function(ok,no){var s=document.createElement("script");s.src="https://www.gstatic.com/firebasejs/10.12.2/firebase-"+k+"-compat.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})})},Promise.resolve())}
+if(!FIREBASE_CONFIG){$("le").textContent="Paste your FIREBASE_CONFIG in this file first.";$("lf").onsubmit=function(e){e.preventDefault()}}
+else load(["app","auth","firestore","storage"]).then(start).catch(function(){$("le").textContent="Could not load Firebase."});
+function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=firebase.firestore();sto=firebase.storage();
+ au.onAuthStateChanged(function(u){$("lf").hidden=!!u;$("app").hidden=!u;if(u)watch();});
+ $("lf").onsubmit=function(e){e.preventDefault();au.signInWithEmailAndPassword($("em").value,$("pw").value).catch(function(){$("le").textContent="Wrong email or password."})};
+ $("so").onclick=function(){au.signOut().then(function(){location.reload()})};
+ $("tO").onclick=function(){$("ol").hidden=false;$("rl").hidden=true};
+ $("tR").onclick=function(){$("ol").hidden=true;$("rl").hidden=false};
+ $("pg").onclick=purge;}
+function setStatus(o,s){return Promise.all([db.collection("orders").doc(o).update({status:s}),db.collection("status").doc(o).set({status:s},{merge:true})])}
+function delPhotos(id,d){return Promise.all([d.idPhoto,d.selfie].filter(Boolean).map(function(p){return sto.ref(p).delete().catch(function(){})})).then(function(){return db.collection("orders").doc(id).update({idPhoto:"",selfie:"",photosDeleted:true})})}
+function purge(){if(!confirm("Delete ID and selfie photos for all orders older than 30 days?"))return;var cut=Date.now()-30*864e5;
+ db.collection("orders").get().then(function(q){var j=[];q.forEach(function(s){var d=s.data();if(d.createdAt&&d.createdAt.toMillis()<cut&&(d.idPhoto||d.selfie))j.push(delPhotos(s.id,d))});return Promise.all(j)}).then(function(){alert("Done.")})}
+function show(p,box){sto.ref(p).getDownloadURL().then(function(u){var i=new Image();i.src=u;box.append(i)}).catch(function(){box.append(E("small","Could not load photo."))})}
+function watch(){if(watching)return;watching=true;
+ db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){var L=$("ol");L.textContent="";if(q.empty)L.append(E("p","No orders yet."));
+  q.forEach(function(s){var d=s.data(),c=E("div",null,"c"),r=E("div",null,"r"),box=E("div");
+   c.append(E("b",s.id+"  "),E("span",d.status||"new","tag"));
+   [d.name+" · "+d.phone,d.address,d.tank+" x"+d.qty+" · "+(d.brand||"Any brand")+" · "+d.type,(d.area||"")+" · "+(d.slot||""),d.payment+" · "+d.total,d.createdAt?d.createdAt.toDate().toLocaleString("en-PH"):""].forEach(function(t){c.append(E("div",t))});
+   ST.forEach(function(x){r.append(B(x,function(){setStatus(s.id,x)},d.status!==x))});
+   if(d.idPhoto)r.append(B("View ID",function(){show(d.idPhoto,box)},1));
+   if(d.selfie)r.append(B("View selfie",function(){show(d.selfie,box)},1));
+   if(d.idPhoto||d.selfie)r.append(B("Delete photos",function(){if(confirm("Delete photos for "+s.id+"?"))delPhotos(s.id,d)},1));
+   c.append(r,box);L.append(c)})});
+ db.collection("reviews").where("approved","==",false).onSnapshot(function(q){var L=$("rl");L.textContent="";if(q.empty)L.append(E("p","No reviews waiting."));
+  q.forEach(function(s){var d=s.data(),c=E("div",null,"c"),r=E("div",null,"r");c.append(E("b",d.name+" - "+d.rating+"/5"),E("div",d.text));
+   r.append(B("Approve",function(){db.collection("reviews").doc(s.id).update({approved:true})}),B("Delete",function(){db.collection("reviews").doc(s.id).delete()},1));c.append(r);L.append(c)})});}
+</script></body></html>
