@@ -87,11 +87,11 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 <h2>Tank sizes &amp; prices</h2>
 <p class="sub">Pick the size that fits your stove.</p>
 <div class="grid">
-<div class="card"><b>2.7 kg</b><br><small>Portable stove</small><div class="price">₱ 260</div></div>
-<div class="card"><b>5 kg</b><br><small>Small household</small><div class="price">₱ 480</div></div>
-<div class="card"><b>11 kg</b><br><small>Standard household</small><div class="price">₱ 950</div></div>
-<div class="card"><b>22 kg</b><br><small>Large family / carinderia</small><div class="price">₱ 1,850</div></div>
-<div class="card"><b>50 kg</b><br><small>Restaurants &amp; business</small><div class="price">₱ 4,200</div></div>
+<div class="card" data-k="2.7"><b>2.7 kg</b><br><small>Portable stove</small><div class="price">₱ 260</div></div>
+<div class="card" data-k="5"><b>5 kg</b><br><small>Small household</small><div class="price">₱ 480</div></div>
+<div class="card" data-k="11"><b>11 kg</b><br><small>Standard household</small><div class="price">₱ 950</div></div>
+<div class="card" data-k="22"><b>22 kg</b><br><small>Large family / carinderia</small><div class="price">₱ 1,850</div></div>
+<div class="card" data-k="50"><b>50 kg</b><br><small>Restaurants &amp; business</small><div class="price">₱ 4,200</div></div>
 </div>
 <p class="sub" style="margin-top:12px">Refill price shown. New tank (with cylinder) costs extra. Delivery fee depends on your area.</p>
 </section>
@@ -113,13 +113,13 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 <div><label>Mobile number</label><input id="p" type="tel" required placeholder="09XX XXX XXXX"></div>
 <div class="full"><label>Delivery address</label><textarea id="a" rows="2" required placeholder="House no., street, barangay, city"></textarea></div>
 <div><label>Tank size</label>
-<select id="s"><option value="260">2.7 kg – ₱260</option><option value="480">5 kg – ₱480</option><option value="950" selected>11 kg – ₱950</option><option value="1850">22 kg – ₱1,850</option><option value="4200">50 kg – ₱4,200</option></select></div>
+<select id="s"><option value="260" data-k="2.7">2.7 kg – ₱260</option><option value="480" data-k="5">5 kg – ₱480</option><option value="950" data-k="11" selected>11 kg – ₱950</option><option value="1850" data-k="22">22 kg – ₱1,850</option><option value="4200" data-k="50">50 kg – ₱4,200</option></select></div>
 <div><label>Quantity</label><input id="q" type="number" min="1" max="20" value="1"></div>
 <div><label>Order type</label><select id="t"><option>Refill (swap my empty tank)</option><option>New tank with cylinder</option></select></div>
 <div><label>Payment</label><select id="m"><option>Cash on delivery</option><option>GCash on delivery</option></select></div>
 <div><label>Brand</label><select id="br"><option>Any brand</option><option>Petron Gasul</option><option>Solane</option><option>Fiesta Gas</option></select></div>
 <div><label>Preferred delivery time</label><select id="sl"><option>As soon as possible</option><option>Morning (8AM-12NN)</option><option>Afternoon (12NN-4PM)</option><option>Evening (4PM-8PM)</option></select></div>
-<div class="full"><label>Delivery area</label><select id="ar"><option value="30">Near (0-3 km) – ₱30</option><option value="60">Mid (3-6 km) – ₱60</option><option value="100">Far (6-10 km) – ₱100</option></select></div>
+<div class="full"><label>Delivery area</label><select id="ar"><option value="30" data-a="near">Near (0-3 km) – ₱30</option><option value="60" data-a="mid">Mid (3-6 km) – ₱60</option><option value="100" data-a="far">Far (6-10 km) – ₱100</option></select></div>
 <div class="full vbox"><b>Verify your order</b>
 <p class="note">For everyone's safety, each order needs a valid ID and a live selfie.</p>
 <label for="idf">1. Valid ID (clear photo of the front)</label>
@@ -168,15 +168,16 @@ $("s").onchange=calc;$("q").oninput=calc;
 $("y").textContent=new Date().getFullYear();
 var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"}; /* paste your Firebase web config object here, e.g. {apiKey:"...",authDomain:"...",projectId:"...",storageBucket:"...",appId:"..."} */
 var idBlob=null,selfBlob=null,stream=null;
-function fit(img,w,h,max,stamp){var r=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.round(w*r);c.height=Math.round(h*r);var x=c.getContext("2d");x.drawImage(img,0,0,c.width,c.height);if(stamp){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,c.height-28,c.width,28);x.fillStyle="#fff";x.font="16px sans-serif";x.fillText(new Date().toLocaleString("en-PH"),10,c.height-9);}return new Promise(function(ok){c.toBlob(ok,"image/jpeg",.82)});}
-$("idf").onchange=function(){var f=this.files[0];idBlob=null;$("idp").hidden=true;if(!f)return;if(!/^image\//.test(f.type)){alert("Please choose a photo of your ID.");this.value="";return;}var im=new Image();im.onload=function(){fit(im,im.naturalWidth,im.naturalHeight,1280).then(function(b){idBlob=b;$("idp").src=URL.createObjectURL(b);$("idp").hidden=false;});};im.src=URL.createObjectURL(f);};
+function fit(img,w,h,max,stamp,q){var r=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.round(w*r);c.height=Math.round(h*r);var x=c.getContext("2d");x.drawImage(img,0,0,c.width,c.height);if(stamp){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,c.height-28,c.width,28);x.fillStyle="#fff";x.font="16px sans-serif";x.fillText(new Date().toLocaleString("en-PH"),10,c.height-9);}return new Promise(function(ok){c.toBlob(ok,"image/jpeg",q||.6)});}
+$("idf").onchange=function(){var f=this.files[0];idBlob=null;$("idp").hidden=true;if(!f)return;if(!/^image\//.test(f.type)){alert("Please choose a photo of your ID.");this.value="";return;}var im=new Image();im.onload=function(){fit(im,im.naturalWidth,im.naturalHeight,900,0,.6).then(function(b){idBlob=b;$("idp").src=URL.createObjectURL(b);$("idp").hidden=false;});};im.src=URL.createObjectURL(f);};
 function stopCam(){if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null;}$("vid").hidden=true;}
 $("co").onclick=function(){$("cerr").textContent="";selfBlob=null;$("sp").hidden=true;
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$("cerr").textContent="Camera is not available here. Open this page in Chrome or Safari over https.";return;}
  navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:false}).then(function(s){stream=s;$("vid").srcObject=s;$("vid").hidden=false;$("co").hidden=true;$("rt").hidden=true;$("tk").hidden=false;}).catch(function(){$("cerr").textContent="Could not open the camera. Please allow camera access and try again.";});};
-$("tk").onclick=function(){var v=$("vid");if(!v.videoWidth)return;fit(v,v.videoWidth,v.videoHeight,640,true).then(function(b){selfBlob=b;$("sp").src=URL.createObjectURL(b);$("sp").hidden=false;stopCam();$("tk").hidden=true;$("rt").hidden=false;});};
+$("tk").onclick=function(){var v=$("vid");if(!v.videoWidth)return;fit(v,v.videoWidth,v.videoHeight,480,true,.6).then(function(b){selfBlob=b;$("sp").src=URL.createObjectURL(b);$("sp").hidden=false;stopCam();$("tk").hidden=true;$("rt").hidden=false;});};
 $("rt").onclick=function(){$("rt").hidden=true;$("co").onclick();};
-function loadFB(){var u=["app","firestore","storage"].map(function(n){return "https://www.gstatic.com/firebasejs/10.12.2/firebase-"+n+"-compat.js"});return u.reduce(function(p,s){return p.then(function(){return new Promise(function(ok,no){var e=document.createElement("script");e.src=s;e.onload=ok;e.onerror=no;document.head.appendChild(e);});});},Promise.resolve());}
+function loadFB(){var u=["app","firestore"].map(function(n){return "https://www.gstatic.com/firebasejs/10.12.2/firebase-"+n+"-compat.js"});return u.reduce(function(p,s){return p.then(function(){return new Promise(function(ok,no){var e=document.createElement("script");e.src=s;e.onload=ok;e.onerror=no;document.head.appendChild(e);});});},Promise.resolve());}
+function b64(b){return new Promise(function(ok){var r=new FileReader();r.onload=function(){ok(r.result)};r.readAsDataURL(b);});}
 $("f").onsubmit=async function(e){e.preventDefault();
  if(!idBlob){alert("Please upload your valid ID.");return;}
  if(!selfBlob){alert("Please take a live selfie with the camera.");return;}
@@ -185,9 +186,7 @@ $("f").onsubmit=async function(e){e.preventDefault();
  var d={name:$("n").value,phone:$("p").value,address:$("a").value,tank:$("s").options[$("s").selectedIndex].text.split(" – ")[0],qty:Number($("q").value),type:$("t").value,payment:$("m").value,total:$("tot").textContent,status:"new",brand:$("br").value,slot:$("sl").value,area:$("ar").options[$("ar").selectedIndex].text};
  bt.disabled=true;bt.textContent="Sending...";
  try{await loadFB();if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
-  var r=firebase.storage().ref("orders/"+oid);
-  await r.child("id.jpg").put(idBlob,{contentType:"image/jpeg"});await r.child("selfie.jpg").put(selfBlob,{contentType:"image/jpeg"});
-  d.idPhoto="orders/"+oid+"/id.jpg";d.selfie="orders/"+oid+"/selfie.jpg";d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+  var ph={id:await b64(idBlob),selfie:await b64(selfBlob),createdAt:firebase.firestore.FieldValue.serverTimestamp(),expireAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+30*864e5))};if(ph.id.length+ph.selfie.length>900000)throw 0;await firebase.firestore().collection("photos").doc(oid).set(ph);d.hasPhotos=true;d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
   await firebase.firestore().collection("orders").doc(oid).set(d);await firebase.firestore().collection("status").doc(oid).set({status:"new"});try{localStorage.setItem("mls_c",JSON.stringify({n:d.name,p:d.phone,a:d.address}))}catch(x){}
   this.innerHTML='<div class="full ok">Thank you! Your order <b>'+oid+'</b> was received. We will text you to confirm. Use this number to track your order.</div>';
  }catch(x){alert("Sorry, we could not send your order. Please try again or call us.");bt.disabled=false;bt.textContent="Send Order";}
@@ -211,6 +210,12 @@ function stars(n){return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,
 if(FIREBASE_CONFIG)fb().then(function(f){return f.firestore().collection("reviews").where("approved","==",true).limit(10).get()}).then(function(q){var b=$("rl");if(q.empty)return;b.textContent="";q.forEach(function(d){var r=d.data(),c=document.createElement("div"),h=document.createElement("b"),p=document.createElement("p"),s=document.createElement("span");c.className="card";s.className="stars";s.textContent=stars(r.rating|0);h.textContent=r.name+" ";p.style.margin="6px 0 0";p.textContent=r.text;h.append(s);c.append(h,p);b.append(c);});}).catch(function(){});
 $("rf").onsubmit=function(e){e.preventDefault();if(!FIREBASE_CONFIG){alert("Preview mode: reviews are not connected yet.");return;}fb().then(function(f){return f.firestore().collection("reviews").add({name:$("rn").value.slice(0,40),rating:Number($("rs").value),text:$("rtx").value.slice(0,400),approved:false,createdAt:f.firestore.FieldValue.serverTimestamp()})}).then(function(){$("rf").innerHTML='<div class="ok">Thank you! Your review will show after we approve it.</div>';}).catch(function(){alert("Could not post your review. Please try again.");});};
 document.querySelectorAll(".pvl").forEach(function(a){a.onclick=function(e){e.preventDefault();if($("pd").showModal)$("pd").showModal();}});$("pc").onclick=function(){$("pd").close();};
+if(FIREBASE_CONFIG)fb().then(function(f){return f.firestore().collection("settings").doc("shop").get()}).then(function(s){if(!s.exists)return;var d=s.data(),P=d.price||{},O=d.out||[],F=d.fee||{};
+ document.querySelectorAll("[data-k]").forEach(function(e){var k=e.getAttribute("data-k"),sold=O.indexOf(k)>-1;if(e.tagName==="OPTION"){if(P[k]){e.value=P[k];e.textContent=k+" kg – "+peso(Number(P[k]));}if(sold){e.disabled=true;e.textContent+=" (sold out)";}}else{var pr=e.querySelector(".price");if(P[k])pr.textContent=peso(Number(P[k]));if(sold)pr.textContent="Sold out";}});
+ document.querySelectorAll("#br option").forEach(function(e){if(O.indexOf(e.textContent)>-1){e.disabled=true;e.textContent+=" (sold out)";}});
+ ["near","mid","far"].forEach(function(a){var o=document.querySelector('[data-a="'+a+'"]');if(o&&F[a]!=null){o.value=F[a];o.textContent=o.textContent.replace(/₱\d+/,peso(Number(F[a])));}});
+ ["s","br"].forEach(function(i){var x=$(i);if(x.options[x.selectedIndex].disabled){for(var j=0;j<x.options.length;j++)if(!x.options[j].disabled){x.selectedIndex=j;break;}}});calc();
+}).catch(function(){});
 var FIL={"Products":"Mga Produkto","How it works":"Paano Gumagana","FAQ":"Mga Tanong","Order Now":"Umorder Na","LPG tanks delivered to your door. Fast & safe.":"LPG na inihahatid sa inyong pinto. Mabilis at ligtas.","Refill or buy a new tank. Same-day delivery, pay cash on delivery, and every tank is leak-checked before it reaches you.":"Magpa-refill o bumili ng bagong tangke. Parehong araw ang hatid, magbayad pagdating, at sinusuri ang bawat tangke kung may tagas.","Call Us":"Tawagan Kami","Tank sizes & prices":"Laki at presyo ng tangke","Pick the size that fits your stove.":"Piliin ang laki na akma sa inyong kalan.","Four easy steps.":"Apat na madaling hakbang.","Order":"Mag-order","Confirm":"Kumpirmahin","Deliver":"Ihatid","Pay":"Bayaran","Place your order":"Mag-order na","Fill in the form and we will text you to confirm.":"Punan ang form at ite-text namin kayo para kumpirmahin.","Full name":"Buong pangalan","Mobile number":"Numero ng cellphone","Delivery address":"Address ng paghahatid","Tank size":"Laki ng tangke","Quantity":"Dami","Order type":"Uri ng order","Payment":"Bayad","Brand":"Brand","Preferred delivery time":"Oras ng paghahatid","Delivery area":"Lugar ng paghahatid","Verify your order":"I-verify ang order","Send Order":"Ipadala ang Order","Cash on delivery":"Cash pagdating","GCash on delivery":"GCash pagdating","Track your order":"Subaybayan ang order","Check":"Tingnan","Customer reviews":"Mga Review ng Customer","Post review":"I-post ang review","Contact & payment":"Makipag-ugnayan at Bayad","Privacy notice":"Paunawa sa Privacy","Open camera":"Buksan ang camera","Take selfie":"Kunan ng selfie","Retake":"Ulitin"};
 var lang="en";try{lang=localStorage.getItem("mls_l")||"en"}catch(x){}
 function applyLang(){var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,t;while(n=w.nextNode()){if(n.parentNode.nodeName==="SCRIPT"||n.parentNode.nodeName==="STYLE")continue;if(n._o===undefined){t=n.nodeValue.trim();if(!FIL[t])continue;n._o=n.nodeValue;n._t=n.nodeValue.replace(t,FIL[t]);}n.nodeValue=lang==="fil"?n._t:n._o;}$("lng").textContent=lang==="fil"?"EN":"FIL";document.documentElement.lang=lang==="fil"?"fil":"en";}
