@@ -14,8 +14,8 @@ button{cursor:pointer;background:var(--brand);color:#fff;border:0;font-weight:60
 <h1>Mark LPG Services Admin</h1>
 <form id="lf" class="c"><input id="em" type="email" placeholder="Admin email" required> <input id="pw" type="password" placeholder="Password" required> <button>Sign in</button><div id="le"></div></form>
 <div id="app" hidden>
-<div class="r"><button class="g" id="tO">Orders</button><button class="g" id="tR">Reviews</button><button class="g" id="pg">Delete photos older than 30 days</button><button class="g" id="so">Sign out</button></div>
-<div id="ol"></div><div id="rl" hidden></div></div>
+<div class="r"><button class="g" id="tO">Orders</button><button class="g" id="tR">Reviews</button><button class="g" id="tS">Prices &amp; stock</button><button class="g" id="pg">Delete photos older than 30 days</button><button class="g" id="so">Sign out</button></div>
+<div id="nb" class="c" hidden><b>New order received!</b></div><div id="ol"></div><div id="rl" hidden></div><div id="sl" hidden></div></div>
 <script>
 var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"}; /* paste the same Firebase web config as the main page */
 var $=function(i){return document.getElementById(i)},ST=["confirmed","out for delivery","delivered","cancelled"],db,au,sto,watching=false;
@@ -23,28 +23,37 @@ function E(t,x,c){var e=document.createElement(t);if(x!==undefined)e.textContent
 function B(t,fn,g){var b=E("button",t);if(g)b.className="g";b.onclick=fn;return b}
 function load(n){return n.reduce(function(p,k){return p.then(function(){return new Promise(function(ok,no){var s=document.createElement("script");s.src="https://www.gstatic.com/firebasejs/10.12.2/firebase-"+k+"-compat.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})})},Promise.resolve())}
 if(!FIREBASE_CONFIG){$("le").textContent="Paste your FIREBASE_CONFIG in this file first.";$("lf").onsubmit=function(e){e.preventDefault()}}
-else load(["app","auth","firestore","storage"]).then(start).catch(function(){$("le").textContent="Could not load Firebase."});
-function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=firebase.firestore();sto=firebase.storage();
+else load(["app","auth","firestore"]).then(start).catch(function(){$("le").textContent="Could not load Firebase."});
+function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=firebase.firestore();
  au.onAuthStateChanged(function(u){$("lf").hidden=!!u;$("app").hidden=!u;if(u)watch();});
  $("lf").onsubmit=function(e){e.preventDefault();au.signInWithEmailAndPassword($("em").value,$("pw").value).catch(function(){$("le").textContent="Wrong email or password."})};
  $("so").onclick=function(){au.signOut().then(function(){location.reload()})};
- $("tO").onclick=function(){$("ol").hidden=false;$("rl").hidden=true};
- $("tR").onclick=function(){$("ol").hidden=true;$("rl").hidden=false};
+ function tab(x){["ol","rl","sl"].forEach(function(i){$(i).hidden=i!==x})}$("tO").onclick=function(){tab("ol")};$("tS").onclick=function(){tab("sl");buildSet()};
+ $("tR").onclick=function(){tab("rl")};
  $("pg").onclick=purge;}
 function setStatus(o,s){return Promise.all([db.collection("orders").doc(o).update({status:s}),db.collection("status").doc(o).set({status:s},{merge:true})])}
-function delPhotos(id,d){return Promise.all([d.idPhoto,d.selfie].filter(Boolean).map(function(p){return sto.ref(p).delete().catch(function(){})})).then(function(){return db.collection("orders").doc(id).update({idPhoto:"",selfie:"",photosDeleted:true})})}
+function delPhotos(id){return db.collection("photos").doc(id).delete().then(function(){return db.collection("orders").doc(id).update({hasPhotos:false,photosDeleted:true})})}
 function purge(){if(!confirm("Delete ID and selfie photos for all orders older than 30 days?"))return;var cut=Date.now()-30*864e5;
- db.collection("orders").get().then(function(q){var j=[];q.forEach(function(s){var d=s.data();if(d.createdAt&&d.createdAt.toMillis()<cut&&(d.idPhoto||d.selfie))j.push(delPhotos(s.id,d))});return Promise.all(j)}).then(function(){alert("Done.")})}
-function show(p,box){sto.ref(p).getDownloadURL().then(function(u){var i=new Image();i.src=u;box.append(i)}).catch(function(){box.append(E("small","Could not load photo."))})}
+ db.collection("orders").get().then(function(q){var j=[];q.forEach(function(s){var d=s.data();if(d.createdAt&&d.createdAt.toMillis()<cut&&d.hasPhotos)j.push(delPhotos(s.id))});return Promise.all(j)}).then(function(){alert("Done.")})}
+function show(id,box){db.collection("photos").doc(id).get().then(function(s){if(!s.exists){box.append(E("small","No photos."));return}var d=s.data();[d.id,d.selfie].forEach(function(u){var i=new Image();i.src=u;box.append(i)})}).catch(function(){box.append(E("small","Could not load photos."))})}
+var first=true,newN=0,ac,SZ=["2.7","5","11","22","50"],BR=["Petron Gasul","Solane","Fiesta Gas"],AR=["near","mid","far"],DP={"2.7":260,"5":480,"11":950,"22":1850,"50":4200},DF={near:30,mid:60,far:100};
+document.addEventListener("click",function(){if(!ac)try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(x){}});
+window.addEventListener("focus",function(){newN=0;document.title="Mark LPG Services - Admin"});
+function beep(){try{if(!ac)return;var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=880;g.gain.value=.2;o.start();o.stop(ac.currentTime+.5)}catch(x){}}
+function inp(l,t,v,id){var w=E("div",null,"r"),i=E("input");i.type=t;i.id=id;if(t==="checkbox")i.checked=!!v;else i.value=v;w.append(E("label",l+" "),i);return w}
+function buildSet(){var L=$("sl");L.textContent="Loading...";db.collection("settings").doc("shop").get().then(function(s){var d=s.exists?s.data():{},P=d.price||{},F=d.fee||{},O=d.out||[],c=E("div",null,"c");L.textContent="";
+ c.append(E("b","Refill prices (PHP)"));SZ.forEach(function(k){c.append(inp(k+" kg","number",P[k]||DP[k],"p_"+k))});
+ c.append(E("b","Delivery fees (PHP)"));AR.forEach(function(k){c.append(inp(k,"number",F[k]!=null?F[k]:DF[k],"f_"+k))});
+ c.append(E("b","Sold out (tick to hide from customers)"));SZ.concat(BR).forEach(function(k){c.append(inp(k,"checkbox",O.indexOf(k)>-1,"o_"+k))});
+ c.append(B("Save",function(){var p={},f={},o=[];SZ.forEach(function(k){p[k]=Number($("p_"+k).value)||DP[k];if($("o_"+k).checked)o.push(k)});BR.forEach(function(k){if($("o_"+k).checked)o.push(k)});AR.forEach(function(k){f[k]=Number($("f_"+k).value)||0});
+  db.collection("settings").doc("shop").set({price:p,fee:f,out:o}).then(function(){alert("Saved. The website will show the new prices.")}).catch(function(){alert("Could not save.")})}));L.append(c)})}
 function watch(){if(watching)return;watching=true;
- db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){var L=$("ol");L.textContent="";if(q.empty)L.append(E("p","No orders yet."));
+ db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){if(!first)q.docChanges().forEach(function(c){if(c.type==="added"){beep();newN++;document.title="("+newN+") New order - Admin";$("nb").hidden=false;setTimeout(function(){$("nb").hidden=true},8000)}});first=false;var L=$("ol");L.textContent="";if(q.empty)L.append(E("p","No orders yet."));
   q.forEach(function(s){var d=s.data(),c=E("div",null,"c"),r=E("div",null,"r"),box=E("div");
    c.append(E("b",s.id+"  "),E("span",d.status||"new","tag"));
    [d.name+" · "+d.phone,d.address,d.tank+" x"+d.qty+" · "+(d.brand||"Any brand")+" · "+d.type,(d.area||"")+" · "+(d.slot||""),d.payment+" · "+d.total,d.createdAt?d.createdAt.toDate().toLocaleString("en-PH"):""].forEach(function(t){c.append(E("div",t))});
    ST.forEach(function(x){r.append(B(x,function(){setStatus(s.id,x)},d.status!==x))});
-   if(d.idPhoto)r.append(B("View ID",function(){show(d.idPhoto,box)},1));
-   if(d.selfie)r.append(B("View selfie",function(){show(d.selfie,box)},1));
-   if(d.idPhoto||d.selfie)r.append(B("Delete photos",function(){if(confirm("Delete photos for "+s.id+"?"))delPhotos(s.id,d)},1));
+   if(d.hasPhotos){r.append(B("View ID + selfie",function(){show(s.id,box)},1));r.append(B("Delete photos",function(){if(confirm("Delete photos for "+s.id+"?"))delPhotos(s.id)},1));}
    c.append(r,box);L.append(c)})});
  db.collection("reviews").where("approved","==",false).onSnapshot(function(q){var L=$("rl");L.textContent="";if(q.empty)L.append(E("p","No reviews waiting."));
   q.forEach(function(s){var d=s.data(),c=E("div",null,"c"),r=E("div",null,"r");c.append(E("b",d.name+" - "+d.rating+"/5"),E("div",d.text));
