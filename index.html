@@ -134,6 +134,23 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 #rvDlg .rt .big{font-size:48px;line-height:1}
 @media(prefers-reduced-motion:reduce){#rvDlg[open]{animation:none}}
 </style>
+<style>
+.mkr{width:40px;height:40px;border-radius:50%;background:#fff;border:3px solid #e8590c;display:grid;place-items:center;font-size:20px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.mkr.d{border-color:#15803d}
+.leaflet-container{font-family:inherit}
+#pmap,#tmap{height:280px;border-radius:14px;border:1px solid var(--line);margin:10px 0;z-index:0}
+#tmap{height:340px}
+.tsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:16px 0 10px}
+.tsteps div{text-align:center;font-size:12px;font-weight:700;color:var(--mute);position:relative}
+.tsteps div i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;margin:0 auto 6px;background:var(--line);color:var(--mute);font-style:normal;position:relative;z-index:1}
+.tsteps div::before{content:"";position:absolute;top:14px;left:-50%;width:100%;height:3px;background:var(--line)}
+.tsteps div:first-child::before{display:none}
+.tsteps .on i{background:var(--brand);color:#fff}.tsteps .on{color:var(--ink)}.tsteps .on::before{background:var(--brand)}
+.tsteps .cur i{box-shadow:0 0 0 5px rgba(232,89,12,.25)}
+.tmsg{font-weight:700;font-size:17px;margin:6px 0}
+.tinfo{display:flex;flex-wrap:wrap;gap:8px 18px;font-weight:600}.tinfo span small{display:block;color:var(--mute);font-weight:600;font-size:12px}
+.twarn{color:#b45309;font-weight:600;margin:6px 0 0}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -147,6 +164,7 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 <dialog id="pd"><h3 style="margin:0 0 8px">Privacy notice</h3>
 <p>We collect your name, mobile number, address, ID photo and selfie only to verify and deliver your order.</p>
 <p>Photos are stored securely, seen only by our authorized staff, and deleted within 30 days. We never sell your data.</p>
+<p>If you pin your location or follow a delivery, we use your pin only to guide the rider. While your order is out for delivery, the rider's live location is shared with you and is deleted once the order is delivered.</p>
 <p>To ask us to delete your data, call us anytime. We handle personal information in line with the Data Privacy Act of 2012 (RA 10173).</p>
 <button class="btn" id="pc" type="button">Close</button></dialog>
 <main class="wrap">
@@ -197,6 +215,7 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 <div><label>Brand</label><select id="br"><option>Any brand</option><option>Petron Gasul</option><option>Solane</option><option>Fiesta Gas</option></select></div>
 <div><label>Preferred delivery time</label><select id="sl"><option>As soon as possible</option><option>Morning (8AM-12NN)</option><option>Afternoon (12NN-4PM)</option><option>Evening (4PM-8PM)</option></select></div>
 <div class="full"><label>Delivery area</label><select id="ar"><option value="30" data-a="near">Near (0-3 km) – ₱30</option><option value="60" data-a="mid">Mid (3-6 km) – ₱60</option><option value="100" data-a="far">Far (6-10 km) – ₱100</option></select></div>
+<div class="full vbox" id="pinbox"><b>Pin your delivery location <small>(optional)</small></b><p class="note">Drop a pin so the rider finds you faster and you can follow your delivery live on a map.</p><div id="pmapw" hidden><div id="pmap"></div><p class="note" id="ptxt">Tap the map to place your pin.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost" id="pgo">Use my current location</button><button type="button" class="btn ghost" id="pclr" hidden>Remove pin</button></div><div id="perr" class="note"></div></div>
 <div class="full vbox"><b>Verify your order</b>
 <p class="note">For everyone's safety, each order needs a valid ID and a live selfie.</p>
 <label for="idf">1. Valid ID (clear photo of the front)</label>
@@ -227,7 +246,8 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 <details><summary>What are your hours?</summary><p>Open daily, 7:00 AM – 8:00 PM.</p></details>
 </section>
 <section id="track"><h2>Track your order</h2><p class="sub">Enter the order number you received.</p>
-<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ti" placeholder="LPG-XXXXXX" style="max-width:240px"><button class="btn" id="tb" type="button" style="padding:10px 20px">Check</button></div><p id="tres" style="font-weight:600"></p></section>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ti" placeholder="LPG-XXXXXX" style="max-width:240px"><button class="btn" id="tb" type="button" style="padding:10px 20px">Check</button></div><p id="tres" style="font-weight:600"></p>
+<div id="tlive" hidden><div class="tsteps" id="tst"></div><p class="tmsg" id="tmsg"></p><p id="twait" class="note" hidden>Your rider will appear on the map as soon as they start sharing their location.</p><div id="tmapw" hidden><div id="tmap" role="img" aria-label="Live map showing your rider"></div><div class="tinfo" id="tinfo"></div><p class="twarn" id="tstale" hidden></p></div></div></section>
 <section id="reviews"><h2>Customer reviews</h2><p class="sub">See what customers say about our deliveries.</p>
 <div id="rl" class="grid"><p class="sub">No reviews yet. Reviews appear after a delivery is completed.</p></div>
 <p class="sub" style="margin-top:16px">Every review comes from a real delivery. After your order is delivered, you will be asked to rate it with stars and share your feedback.</p></section>
@@ -259,13 +279,13 @@ $("f").onsubmit=async function(e){e.preventDefault();
  if(!idBlob){alert("Please upload your valid ID.");return;}
  if(!selfBlob){alert("Please take a live selfie with the camera.");return;}
  if(!FIREBASE_CONFIG){alert("Preview mode: this page is not connected to Firebase yet, so the order and photos were not sent.");return;}
- var bt=this.querySelector("button[type=submit]"),oid="LPG-"+Date.now().toString(36).toUpperCase();
+ var bt=this.querySelector("button[type=submit]"),oid="LPG-"+Date.now().toString(36).toUpperCase()+mlsRnd(5);
  var d={name:$("n").value,phone:$("p").value,address:$("a").value,tank:$("s").options[$("s").selectedIndex].text.split(" – ")[0],qty:Number($("q").value),type:$("t").value,payment:$("m").value,total:$("tot").textContent,status:"new",brand:$("br").value,slot:$("sl").value,area:$("ar").options[$("ar").selectedIndex].text};
- bt.disabled=true;bt.textContent="Sending...";
+ if(PIN){d.lat=PIN.lat;d.lng=PIN.lng}bt.disabled=true;bt.textContent="Sending...";
  try{await loadFB();if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
   var ph={id:await b64(idBlob),selfie:await b64(selfBlob),createdAt:firebase.firestore.FieldValue.serverTimestamp(),expireAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+30*864e5))};if(ph.id.length+ph.selfie.length>900000)throw 0;await firebase.firestore().collection("photos").doc(oid).set(ph);d.hasPhotos=true;d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
-  await firebase.firestore().collection("orders").doc(oid).set(d);await firebase.firestore().collection("status").doc(oid).set({status:"new"});try{localStorage.setItem("mls_c",JSON.stringify({n:d.name,p:d.phone,a:d.address}))}catch(x){};try{window.mlsAddPending&&window.mlsAddPending(oid,d.name)}catch(x){}
-  this.innerHTML='<div class="full ok">Thank you! Your order <b>'+oid+'</b> was received. We will text you to confirm. Use this number to track your order. After delivery, you will be asked to rate it.</div>';
+  await firebase.firestore().collection("orders").doc(oid).set(d);await firebase.firestore().collection("status").doc(oid).set(PIN?{status:"new",lat:PIN.lat,lng:PIN.lng}:{status:"new"});try{localStorage.setItem("mls_c",JSON.stringify({n:d.name,p:d.phone,a:d.address}))}catch(x){};try{window.mlsAddPending&&window.mlsAddPending(oid,d.name)}catch(x){}
+  this.innerHTML='<div class="full ok">Thank you! Your order <b>'+oid+'</b> was received. We will text you to confirm. Use this number to track your order. After delivery, you will be asked to rate it.<br><br><button type="button" class="btn" id="tgo">Track my delivery live</button></div>';try{var tg=document.getElementById("tgo");tg.onclick=function(){mlsTrack(oid);document.getElementById("track").scrollIntoView({behavior:"smooth"})};mlsTrack(oid)}catch(x){}
  }catch(x){alert("Sorry, we could not send your order. Please try again or call us.");bt.disabled=false;bt.textContent="Send Order";}
 };
 
@@ -282,7 +302,6 @@ function fb(){if(!FIREBASE_CONFIG)return Promise.reject();return(window.firebase
 try{var sc=JSON.parse(localStorage.getItem("mls_c")||"null");if(sc){$("n").value=sc.n||"";$("p").value=sc.p||"";$("a").value=sc.a||"";}}catch(x){}
 $("ar").onchange=calc;calc();
 var SL={"new":"Received. We will confirm soon.","confirmed":"Confirmed. Your order is being prepared.","out for delivery":"Out for delivery. The rider is on the way.","delivered":"Delivered. Thank you!","cancelled":"Cancelled. Please call us."};
-$("tb").onclick=function(){var id=$("ti").value.trim().toUpperCase(),o=$("tres");if(!id)return;o.textContent="Checking...";fb().then(function(f){return f.firestore().collection("status").doc(id).get()}).then(function(s){o.textContent=s.exists?(SL[s.data().status]||s.data().status):"Order not found. Please check the number.";}).catch(function(){o.textContent="Tracking is not available right now. Please call us.";});};
 function stars(n){return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 if(FIREBASE_CONFIG)fb().then(function(f){return f.firestore().collection("reviews").where("approved","==",true).limit(10).get()}).then(function(q){var b=$("rl");if(q.empty)return;b.textContent="";q.forEach(function(d){var r=d.data(),c=document.createElement("div"),h=document.createElement("b"),p=document.createElement("p"),s=document.createElement("span");c.className="card";s.className="stars";s.textContent=stars(r.rating|0);h.textContent=r.name+" ";p.style.margin="6px 0 0";p.textContent=r.text;h.append(s);c.append(h,p);b.append(c);});}).catch(function(){});
 document.querySelectorAll(".pvl").forEach(function(a){a.onclick=function(e){e.preventDefault();if($("pd").showModal)$("pd").showModal();}});$("pc").onclick=function(){$("pd").close();};
@@ -420,6 +439,75 @@ window.addEventListener("load",function(){setTimeout(check,1200)});
 document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});
 window.addEventListener("focus",check);
 setInterval(check,60000);
+})();
+</script>
+<script>
+/* Map helpers, pin picker and live delivery tracking */
+var PIN=null;
+function mlsRnd(n){var c="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",a=new Uint8Array(n),o="";try{crypto.getRandomValues(a)}catch(x){for(var i=0;i<n;i++)a[i]=Math.floor(Math.random()*256)}for(var j=0;j<n;j++)o+=c[a[j]%36];return o}
+function mlsLeaflet(){if(window.L)return Promise.resolve();if(mlsLeaflet.p)return mlsLeaflet.p;
+ var S=[["https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css","https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"],["https://unpkg.com/leaflet@1.9.4/dist/leaflet.css","https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"]];
+ function tryAt(i){return new Promise(function(ok,no){var l=document.createElement("link");l.rel="stylesheet";l.href=S[i][0];document.head.appendChild(l);var s=document.createElement("script");s.src=S[i][1];s.onload=ok;s.onerror=function(){s.remove();l.remove();no()};document.head.appendChild(s)}).catch(function(){if(i+1<S.length)return tryAt(i+1);throw 0})}
+ mlsLeaflet.p=tryAt(0).catch(function(e){mlsLeaflet.p=null;throw e});return mlsLeaflet.p}
+function mlsIcon(e,c){return L.divIcon({className:"",html:'<div class="mkr '+(c||"")+'">'+e+'</div>',iconSize:[40,40],iconAnchor:[20,20]})}
+function mlsTiles(m){L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(m)}
+function mlsKm(a,b,c,d){var R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
+
+/* pin picker on the order form */
+(function(){
+var $=function(i){return document.getElementById(i)},map=null,mk=null;
+function setPin(lat,lng,pan){PIN={lat:Math.round(lat*1e6)/1e6,lng:Math.round(lng*1e6)/1e6};
+ if(!mk){mk=L.marker([lat,lng],{icon:mlsIcon("&#128205;","d"),draggable:true}).addTo(map);mk.on("dragend",function(){var p=mk.getLatLng();setPin(p.lat,p.lng)})}else mk.setLatLng([lat,lng]);
+ if(pan)map.setView([lat,lng],17);$("ptxt").textContent="Pin saved. Drag the pin to adjust it.";$("pclr").hidden=false}
+function openMap(){$("pmapw").hidden=false;return mlsLeaflet().then(function(){if(!map){map=L.map("pmap").setView([14.5995,120.9842],12);mlsTiles(map);map.on("click",function(e){setPin(e.latlng.lat,e.latlng.lng)})}setTimeout(function(){map.invalidateSize()},50)})}
+$("pgo").onclick=function(){$("perr").textContent="";var b=this;b.disabled=true;
+ openMap().then(function(){
+  if(!navigator.geolocation){$("perr").textContent="Tap on the map to drop your pin.";b.disabled=false;return}
+  navigator.geolocation.getCurrentPosition(function(p){setPin(p.coords.latitude,p.coords.longitude,true);b.disabled=false},function(){$("perr").textContent="Could not get your location. Tap on the map to drop your pin.";b.disabled=false},{enableHighAccuracy:true,timeout:15000})
+ }).catch(function(){$("perr").textContent="The map could not load. You can still send your order with your address.";b.disabled=false})};
+$("pclr").onclick=function(){PIN=null;if(mk){map.removeLayer(mk);mk=null}$("pclr").hidden=true;$("ptxt").textContent="Pin removed."};
+})();
+
+/* live order status + rider map */
+(function(){
+var $=function(i){return document.getElementById(i)};
+var STEPS=[["new","Received"],["confirmed","Confirmed"],["out for delivery","On the way"],["delivered","Delivered"]];
+var us=null,ut=null,map=null,rm=null,dm=null,dest=null,fix=null,fitted=false,tick=null;
+function stopTrack(){if(ut){ut();ut=null}clearInterval(tick);tick=null;if(map){map.remove();map=null}rm=dm=null;fix=null;fitted=false;$("tmapw").hidden=true;$("twait").hidden=true}
+function stop(){if(us){us();us=null}stopTrack()}
+function render(st){var i=-1;STEPS.forEach(function(s,n){if(s[0]===st)i=n});var T=$("tst");T.textContent="";
+ if(st==="cancelled"){T.hidden=true}else{T.hidden=false;STEPS.forEach(function(s,n){var d=document.createElement("div"),b=document.createElement("i");b.textContent=n<i||st==="delivered"?"\u2713":String(n+1);d.append(b,document.createTextNode(s[1]));if(n<=i)d.className="on"+(n===i?" cur":"");T.append(d)})}
+ $("tmsg").textContent=SL[st]||st;$("tlive").hidden=false}
+function ageTxt(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+" sec ago":Math.round(s/60)+" min ago"}
+function paintInfo(){if(!fix)return;var I=$("tinfo");I.textContent="";var ms=fix.updatedAt?fix.updatedAt.toMillis():Date.now();
+ function item(l,v){var s=document.createElement("span"),m=document.createElement("small");m.textContent=l;s.append(m,document.createTextNode(v));I.append(s)}
+ item("Rider",fix.riderName||"Your rider");
+ if(dest){var km=mlsKm(fix.lat,fix.lng,dest.lat,dest.lng);item("Distance",km<1?Math.round(km*1000)+" m":km.toFixed(1)+" km");item("Arrival (estimate)",km<0.15?"Almost there!":"~"+Math.max(1,Math.round(km/20*60))+" min")}
+ item("Updated",ageTxt(ms));var w=$("tstale");w.hidden=!(Date.now()-ms>120000);w.textContent="The rider's location has not updated for a while. They may have lost signal."}
+function update(){if(!fix)return;$("twait").hidden=true;$("tmapw").hidden=false;
+ mlsLeaflet().then(function(){if(!fix)return;
+  if(!map){map=L.map("tmap");mlsTiles(map);fitted=false}
+  var ll=[fix.lat,fix.lng];if(!rm)rm=L.marker(ll,{icon:mlsIcon("&#128666;")}).addTo(map);else rm.setLatLng(ll);
+  if(dest&&!dm)dm=L.marker([dest.lat,dest.lng],{icon:mlsIcon("&#128205;","d")}).addTo(map);
+  map.invalidateSize();var pts=dest?[ll,[dest.lat,dest.lng]]:[ll];
+  if(!fitted){if(dest)map.fitBounds(pts,{padding:[40,40],maxZoom:17});else map.setView(ll,16);fitted=true}else if(!map.getBounds().contains(ll)){dest?map.fitBounds(pts,{padding:[40,40],maxZoom:17}):map.panTo(ll)}
+  paintInfo()}).catch(function(){$("tinfo").textContent="Map unavailable right now. Your rider is on the way."})}
+function watchRider(db,id){if(ut)return;$("twait").hidden=false;
+ ut=db.collection("tracking").doc(id).onSnapshot(function(s){if(!s.exists){fix=null;if(map){map.remove();map=null;rm=dm=null}$("tmapw").hidden=true;$("twait").hidden=false;return}fix=s.data();update()},function(){});
+ if(!tick)tick=setInterval(paintInfo,5000)}
+function start(id,quiet){id=String(id||"").trim().toUpperCase();if(!id)return;stop();var o=$("tres");if(!quiet)o.textContent="Checking...";
+ fb().then(function(f){var db=f.firestore();
+  us=db.collection("status").doc(id).onSnapshot(function(s){
+   if(!s.exists){if(!quiet)o.textContent="Order not found. Please check the number.";$("tlive").hidden=true;stopTrack();return}
+   o.textContent="";var d=s.data();dest=(typeof d.lat==="number"&&typeof d.lng==="number")?{lat:d.lat,lng:d.lng}:null;render(d.status);
+   if(d.status==="out for delivery")watchRider(db,id);else stopTrack();
+   try{if(d.status==="delivered"||d.status==="cancelled")localStorage.removeItem("mls_last");else localStorage.setItem("mls_last",id)}catch(x){}
+  },function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})
+ }).catch(function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})}
+window.mlsTrack=function(id){var t=$("ti");t.value=id;start(id)};
+$("tb").onclick=function(){start($("ti").value)};
+$("ti").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();start(this.value)}};
+window.addEventListener("load",function(){var id=null;try{id=localStorage.getItem("mls_last")}catch(x){}if(id){$("ti").value=id;start(id,true)}});
 })();
 </script>
 </body>
