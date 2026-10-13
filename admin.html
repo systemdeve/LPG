@@ -111,6 +111,16 @@ input:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(232,89,12,.16)}
 .savebar{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;justify-content:flex-end;margin-top:6px}
 .savebar .btn{box-shadow:0 10px 28px rgba(232,89,12,.4);height:48px;padding:0 28px}
 
+/* live tracking */
+.btn.live{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.live.on{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(21,128,61,.5)}50%{box-shadow:0 0 0 8px rgba(21,128,61,0)}}
+.sharing{display:flex;align-items:center;gap:8px;width:100%;font-size:13px;font-weight:700;color:var(--ok);background:var(--okbg);border-radius:10px;padding:8px 12px}
+.sharing i{width:9px;height:9px;border-radius:50%;background:var(--ok);animation:pulse 1.6s infinite}
+/* track tab */
+.truck{font-size:28px;line-height:1;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.leaflet-tooltip{font-weight:700}
+.ago{font-size:12px;font-weight:700;color:var(--ok)}.ago.stale{color:var(--mute)}
 /* toast + lightbox */
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translate(-50%,20px);background:#1f1a17;color:#fff;padding:12px 20px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -137,10 +147,11 @@ main{padding-bottom:40px}
  </div></header>
  <div id="nb" class="nb" hidden>New order received!</div>
  <div class="wrap">
-  <nav class="tabs"><button id="tO" class="on">Orders<span class="cnt" id="cO" hidden></span></button><button id="tR">Reviews<span class="cnt" id="cR" hidden></span></button><button id="tS">Prices &amp; stock</button></nav>
+  <nav class="tabs"><button id="tO" class="on">Orders<span class="cnt" id="cO" hidden></span></button><button id="tR">Reviews<span class="cnt" id="cR" hidden></span></button><button id="tK">Track<span class="cnt" id="cK" hidden></span></button><button id="tS">Prices &amp; stock</button></nav>
   <main>
    <section id="pO"><div class="stats" id="stats"></div><div class="bar"><input id="q" type="search" placeholder="Search name, phone or order ID"><div class="chips" id="chips"></div></div><div id="ol"></div></section>
    <section id="rl" hidden></section>
+   <section id="tk" hidden></section>
    <section id="sl" hidden></section>
   </main>
  </div>
@@ -173,17 +184,68 @@ function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=f
  au.onAuthStateChanged(function(u){$("login").hidden=!!u;$("app").hidden=!u;if(u){$("who").textContent=u.email||"";watch()}});
  $("lf").onsubmit=function(e){e.preventDefault();var b=$("lbtn");b.disabled=true;b.textContent="Signing in...";$("le").textContent="";
   au.signInWithEmailAndPassword($("em").value.trim(),$("pw").value).catch(function(){$("le").textContent="Wrong email or password.";$("pw").value="";$("pw").focus()}).then(function(){b.disabled=false;b.textContent="Sign in"})};
- $("so").onclick=function(){if(!confirm("Are you sure you want to sign out?"))return;au.signOut().then(function(){location.replace("index.html")}).catch(function(){toast("Could not sign out. Try again.")})};
- $("tO").onclick=function(){tab("pO")};$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};
+ $("so").onclick=function(){if(!confirm("Are you sure you want to sign out?"))return;stopTrack(true);au.signOut().then(function(){location.replace("index.html")}).catch(function(){toast("Could not sign out. Try again.")})};
+ $("tO").onclick=function(){tab("pO")};$("tR").onclick=function(){tab("rl")};$("tK").onclick=function(){tab("tk");openTrack()};$("tS").onclick=function(){tab("sl");buildSet()};
  $("q").oninput=renderOrders;
 }
-function tab(x){["pO","rl","sl"].forEach(function(i){$(i).hidden=i!==x});[["tO","pO"],["tR","rl"],["tS","sl"]].forEach(function(p){$(p[0]).classList.toggle("on",p[1]===x)});window.scrollTo({top:0})}
+function tab(x){["pO","rl","tk","sl"].forEach(function(i){$(i).hidden=i!==x});[["tO","pO"],["tR","rl"],["tK","tk"],["tS","sl"]].forEach(function(p){$(p[0]).classList.toggle("on",p[1]===x)});window.scrollTo({top:0})}
 
-function setStatus(o,s){return Promise.all([db.collection("orders").doc(o).update({status:s}),db.collection("status").doc(o).set({status:s},{merge:true})]).then(function(){toast("Order "+o+" marked "+s)}).catch(function(){toast("Could not update status")})}
+function setStatus(o,s){if(TRK===o&&(s==="delivered"||s==="cancelled"))stopTrack(true);return Promise.all([db.collection("orders").doc(o).update({status:s}),db.collection("status").doc(o).set({status:s},{merge:true})]).then(function(){toast("Order "+o+" marked "+s)}).catch(function(){toast("Could not update status")})}
 function delPhotos(id){return db.collection("photos").doc(id).delete().then(function(){return db.collection("orders").doc(id).update({hasPhotos:false,photosDeleted:true})})}
 function purge(){if(!confirm("Delete ID and selfie photos for all orders older than 30 days?"))return;var cut=Date.now()-30*864e5;
  db.collection("orders").get().then(function(q){var j=[];q.forEach(function(s){var d=s.data();if(d.createdAt&&d.createdAt.toMillis()<cut&&d.hasPhotos)j.push(delPhotos(s.id))});return Promise.all(j).then(function(){return j.length})}).then(function(n){toast(n?"Deleted photos from "+n+" order(s)":"No old photos to delete")}).catch(function(){toast("Could not delete photos")})}
 function show(id,box){box.textContent="";db.collection("photos").doc(id).get().then(function(s){if(!s.exists){box.append(E("small","No photos."));return}var d=s.data(),g=E("div",null,"ph");[["ID",d.id],["Selfie",d.selfie]].forEach(function(p){if(!p[1])return;var f=E("figure"),i=new Image();f.append(E("figcaption",p[0]));i.src=p[1];i.alt=p[0];i.onclick=function(){$("lb").firstElementChild.src=p[1];$("lb").hidden=false};f.append(i);g.append(f)});box.append(g)}).catch(function(){box.append(E("small","Could not load photos."))})}
+
+/* live delivery tracking */
+var TRK=null,TW=null,TL=0,WL=null;
+function ts(){return firebase.firestore.FieldValue.serverTimestamp()}
+function wake(){if(navigator.wakeLock)navigator.wakeLock.request("screen").then(function(l){WL=l}).catch(function(){})}
+document.addEventListener("visibilitychange",function(){if(TRK&&document.visibilityState==="visible")wake()});
+window.addEventListener("pagehide",function(){if(TRK)stopTrack(true)});
+function startTrack(id){
+ if(!navigator.geolocation){toast("This device cannot share location.");return}
+ if(TRK)stopTrack(true);
+ TRK=id;TL=0;
+ TW=navigator.geolocation.watchPosition(function(p){var n=Date.now();if(n-TL<4000)return;TL=n;var c=p.coords;
+  db.collection("tracking").doc(id).set({lat:c.latitude,lng:c.longitude,heading:c.heading==null||isNaN(c.heading)?null:c.heading,speed:c.speed==null?null:c.speed,accuracy:c.accuracy,active:true,updatedAt:ts()}).catch(function(){toast("Could not send location")})},
+  function(e){toast(e.code===1?"Location blocked. Allow location for this site and try again.":"Could not get your location.");stopTrack()},
+  {enableHighAccuracy:true,maximumAge:2000,timeout:30000});
+ wake();toast("Sharing live location for "+id);renderOrders()}
+function stopTrack(quiet){
+ var id=TRK;if(TW!=null)navigator.geolocation.clearWatch(TW);TW=null;TRK=null;
+ if(WL){try{WL.release()}catch(x){}WL=null}
+ if(id&&db)db.collection("tracking").doc(id).set({active:false,lat:null,lng:null,updatedAt:ts()},{merge:true}).catch(function(){});
+ if(!quiet){toast("Stopped sharing location");renderOrders()}}
+function trackLink(id){var u=new URL("track.html?o="+encodeURIComponent(id),location.href).href;
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(function(){toast("Tracking link copied")}).catch(function(){prompt("Copy this tracking link:",u)});
+ else prompt("Copy this tracking link:",u)}
+
+/* track tab */
+var TKD={},TKM=null,TKK={},TKF=false;
+function loadLeaf(){return window.L?Promise.resolve():new Promise(function(ok,no){var l=document.createElement("link");l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.append(l);var s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";s.onload=ok;s.onerror=no;document.head.append(s)})}
+function watchTrack(){db.collection("tracking").where("active","==",true).onSnapshot(function(q){TKD={};q.forEach(function(s){var d=s.data();if(typeof d.lat==="number"&&typeof d.lng==="number")TKD[s.id]=d});
+ var n=Object.keys(TKD).length;$("cK").hidden=!n;$("cK").textContent=n;if(!$("tk").hidden)drawTrack()},function(){toast("Could not load live tracking")});
+ setInterval(function(){if(!$("tk").hidden)drawTrack()},15000)}
+function openTrack(){var T=$("tk");
+ if(!T.firstChild){var e=E("div",null,"empty");e.id="tke";e.append(E("b","No live deliveries"),E("span","When a driver taps Share live location on an out-for-delivery order, it shows up here."));
+  var m=E("div",null,"c"),mp=E("div");m.id="tkc";mp.id="tkm";mp.style.cssText="height:380px;border-radius:14px";m.append(mp);var l=E("div");l.id="tkl";T.append(e,m,l)}
+ loadLeaf().then(function(){if(!TKM){TKM=L.map("tkm").setView([13.76,121.06],11);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(TKM)}
+  setTimeout(function(){TKM.invalidateSize();drawTrack(true)},60)}).catch(function(){toast("Could not load the map")})}
+function ago(d){if(!d.updatedAt||!d.updatedAt.toMillis)return["just now",false];var s=Math.max(0,Math.round((Date.now()-d.updatedAt.toMillis())/1000));return[s<10?"just now":s<60?s+" sec ago":Math.round(s/60)+" min ago",s>120]}
+function drawTrack(fit){if(!TKM)return;var ids=Object.keys(TKD),added=false;
+ $("tke").hidden=!!ids.length;$("tkc").hidden=!ids.length;
+ Object.keys(TKK).forEach(function(k){if(!TKD[k]){TKM.removeLayer(TKK[k]);delete TKK[k]}});
+ ids.forEach(function(k){var d=TKD[k],ll=[d.lat,d.lng];if(TKK[k])TKK[k].setLatLng(ll);else{added=true;TKK[k]=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="truck">🚚</div>',iconSize:[34,34],iconAnchor:[17,17]})}).bindTooltip(k,{permanent:true,direction:"top",offset:[0,-14]}).addTo(TKM)}});
+ if(ids.length&&(fit||added)){if(ids.length===1)TKM.setView([TKD[ids[0]].lat,TKD[ids[0]].lng],16);else TKM.fitBounds(ids.map(function(k){return[TKD[k].lat,TKD[k].lng]}),{padding:[40,40]})}
+ var L2=$("tkl");L2.textContent="";
+ ids.forEach(function(k){var d=TKD[k],o=ORD.filter(function(x){return x.id===k})[0],od=o?o.d:{},c=E("div",null,"c"),h=E("div",null,"oh"),l=E("div"),a=ago(d),g=E("div",null,"kv"),r=E("div",null,"ra");
+  l.append(E("div",k,"oid"),E("div","Updated "+a[0],"ago"+(a[1]?" stale":"")));h.append(l,E("span","out for delivery","tag s-out-for-delivery"));c.append(h);
+  var ad=null,ph=null;if(od.address){ad=E("a",od.address);ad.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(od.address);ad.target="_blank";ad.rel="noopener"}
+  if(od.phone){ph=E("a",od.phone);ph.href="tel:"+od.phone}
+  g.append(kv("Customer",od.name||"-"),kv("Phone",null,false,ph||E("span","-")),kv("Deliver to",null,true,ad||E("span","-")));c.append(g);
+  r.append(B("Show on map",function(){TKM.setView([d.lat,d.lng],17);window.scrollTo({top:0,behavior:"smooth"})}),B("Copy tracking link",function(){trackLink(k)},"g"));
+  if(typeof TRK!=="undefined"&&TRK===k)r.append(E("span","You are sharing this one","ago"));
+  c.append(r);L2.append(c)})}
 
 /* audio */
 var first=true,newN=0,ac;
@@ -216,6 +278,9 @@ function renderOrders(){renderStats();var L=$("ol"),q=($("q").value||"").toLower
   c.append(g);
   var r=E("div",null,"ra");
   ST.forEach(function(x){r.append(B(x,function(){setStatus(o.id,x)},s!==x?"g":""))});
+  if(TRK===o.id){var sh=E("div",null,"sharing");sh.append(E("i"),E("span","Sharing live location with customer"));r.append(sh);r.append(B("Stop sharing",function(){stopTrack()},"d"))}
+  else if(s==="out for delivery"){r.append(B("Share live location",function(){startTrack(o.id)},"live on"))}
+  if(s==="confirmed"||s==="out for delivery"||TRK===o.id)r.append(B("Copy tracking link",function(){trackLink(o.id)},"g"));
   if(d.hasPhotos){r.append(B("View ID + selfie",function(){show(o.id,box)},"g"));r.append(B("Delete photos",function(){if(confirm("Delete photos for "+o.id+"?"))delPhotos(o.id).then(function(){toast("Photos deleted")})},"d"))}
   c.append(r,box);L.append(c)})}
 
@@ -232,7 +297,7 @@ function buildSet(){var L=$("sl");L.textContent="Loading...";db.collection("sett
  L.append(a,b,c,sb,pv)}).catch(function(){L.textContent="Could not load settings."})}
 
 /* realtime */
-function watch(){if(watching)return;watching=true;renderChips();
+function watch(){if(watching)return;watching=true;renderChips();watchTrack();
  db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){
   if(!first)q.docChanges().forEach(function(c){if(c.type==="added"){beep();newN++;document.title="("+newN+") New order - Admin";$("nb").hidden=false;setTimeout(function(){$("nb").hidden=true},8000)}});first=false;
   ORD=[];q.forEach(function(s){ORD.push({id:s.id,d:s.data()})});renderChips();renderOrders()});
