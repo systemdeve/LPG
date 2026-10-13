@@ -219,7 +219,7 @@ function killRMap(){if(RM){try{RM.remove()}catch(x){}}RM=null;mapEl=null;rmk=rci
 setInterval(function(){if(resumed||!me||!gotO||!gotT)return;resumed=true;var id=null;try{id=localStorage.getItem("rider_active")}catch(x){}
  if(!id)return;var t=TRK[id];if(t&&t.riderUid===me.uid&&ORD.some(function(o){return o.id===id})){ACTIVE=id;startedAt=t.startedAt||firebase.firestore.Timestamp.now();lastSent=Date.now();run();render()}else{try{localStorage.removeItem("rider_active")}catch(x){}}},700);
 </script><div id="inst"><button id="instBtn" class="glass" type="button" aria-label="Install Mark LPG app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span>Install app</span></button><button id="instX" class="glass" type="button" aria-label="Dismiss">&#x2715;</button></div>
-<div id="instHelp" class="glass" role="dialog" aria-label="Install instructions"><b>Install Mark LPG</b><ol><li>Tap the <b>Share</b> button in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol><button id="instOk" class="glass" type="button">Got it</button></div>
+<div id="instHelp" class="glass" role="dialog" aria-label="Install instructions"><b>Install Mark LPG</b><ol id="instSteps"></ol><button id="instOk" class="glass" type="button">Got it</button></div>
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)},dp=null,box=$("inst"),help=$("instHelp");
@@ -231,10 +231,10 @@ function hide(){box.classList.remove("show");help.classList.remove("show")}
 if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(r){window.mlsReg=r;return r}).catch(function(){})})}
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;show()});
 window.addEventListener("appinstalled",function(){dp=null;hide()});
-if(ios&&!standalone){window.addEventListener("load",function(){setTimeout(show,2500)})}
+if(!standalone){window.addEventListener("load",function(){setTimeout(show,600)})}
 $("instBtn").onclick=function(){
  if(dp){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
- else if(ios){help.classList.add("show")}
+ else{var st=ios?["Tap the <b>Share</b> button in Safari.","Choose <b>Add to Home Screen</b>.","Tap <b>Add</b>."]:["Open the browser menu (the three dots at the top or bottom).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Tap <b>Install</b> to confirm."];$("instSteps").innerHTML=st.map(function(x){return "<li>"+x+"</li>"}).join("");help.classList.add("show")}
 };
 $("instX").onclick=function(){try{sessionStorage.setItem("mls_inst","1")}catch(x){}hide()};
 $("instOk").onclick=function(){help.classList.remove("show")};
