@@ -125,6 +125,29 @@ main{padding-bottom:40px}
 .lvc{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .t-ok{background:var(--okbg);color:var(--ok)}.t-st{background:var(--warnbg);color:var(--warn)}
 </style>
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mark LPG Admin">
+<style>
+#inst{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 8px));z-index:90;display:none;align-items:center;gap:6px}
+#inst.show{display:flex;animation:instIn .5s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes instIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:none}}
+.glass{background:linear-gradient(135deg,rgba(255,255,255,.38),rgba(255,138,61,.30));-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 32px rgba(232,89,12,.28),inset 0 1px 0 rgba(255,255,255,.6);color:#7a2e05}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .glass{background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,138,61,.26));border-color:rgba(255,255,255,.22);color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}}
+:root[data-theme="dark"] .glass{background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,138,61,.26));border-color:rgba(255,255,255,.22);color:#fff}
+#instBtn{display:flex;align-items:center;gap:8px;border-radius:999px;padding:11px 18px 11px 14px;font:700 15px system-ui,sans-serif;cursor:pointer}
+#instBtn:active{transform:scale(.96)}
+#instBtn svg{width:20px;height:20px;flex:none}
+#instX{width:28px;height:28px;border-radius:50%;padding:0;cursor:pointer;font:700 14px/1 system-ui,sans-serif;display:grid;place-items:center}
+#instHelp{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(92vw,360px);z-index:95;border-radius:22px;padding:18px;display:none;font:15px/1.5 system-ui,sans-serif}
+#instHelp.show{display:block;animation:instIn .4s ease}
+#instHelp b{font-size:17px}#instHelp ol{margin:8px 0 12px;padding-left:20px}#instHelp button{border-radius:999px;padding:8px 18px;font:700 14px system-ui,sans-serif;cursor:pointer}
+@media(prefers-reduced-motion:reduce){#inst.show,#instHelp.show{animation:none}}
+</style>
+<style>#inst{right:auto;left:max(16px,env(safe-area-inset-left,0px))}</style>
+<style>
+#offb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:95;padding:8px 16px;border-radius:999px;font:700 13px system-ui,sans-serif;white-space:nowrap}
+</style>
 </head><body>
 
 <div id="login" class="lw"><form id="lf" class="lc" autocomplete="on">
@@ -273,4 +296,51 @@ function watch(){if(watching)return;watching=true;renderChips();
   q.forEach(function(s){var d=s.data(),c=E("div",null,"c rv"),r=E("div",null,"ra"),n=Math.max(0,Math.min(5,Number(d.rating)||0));
    c.append(E("h3",d.name||"Customer"),E("div",d.orderId?"Order "+d.orderId:"","ot"),E("div",new Array(n+1).join("\u2605")+new Array(6-n).join("\u2606"),"stars"),E("p",d.text||""));
    r.append(B("Approve",function(){db.collection("reviews").doc(s.id).update({approved:true}).then(function(){toast("Review approved")})}),B("Delete",function(){if(confirm("Delete this review?"))db.collection("reviews").doc(s.id).delete().then(function(){toast("Review deleted")})},"d"));c.append(r);L.append(c)})})}
-</script></body></html>
+</script><div id="inst"><button id="instBtn" class="glass" type="button" aria-label="Install Mark LPG app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span>Install app</span></button><button id="instX" class="glass" type="button" aria-label="Dismiss">&#x2715;</button></div>
+<div id="instHelp" class="glass" role="dialog" aria-label="Install instructions"><b>Install Mark LPG</b><ol><li>Tap the <b>Share</b> button in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol><button id="instOk" class="glass" type="button">Got it</button></div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},dp=null,box=$("inst"),help=$("instHelp");
+var standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function dismissed(){try{return sessionStorage.getItem("mls_inst")==="1"}catch(x){return false}}
+function show(){if(!standalone&&!dismissed())box.classList.add("show")}
+function hide(){box.classList.remove("show");help.classList.remove("show")}
+if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(r){window.mlsReg=r;return r}).catch(function(){})})}
+window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;show()});
+window.addEventListener("appinstalled",function(){dp=null;hide()});
+if(ios&&!standalone){window.addEventListener("load",function(){setTimeout(show,2500)})}
+$("instBtn").onclick=function(){
+ if(dp){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
+ else if(ios){help.classList.add("show")}
+};
+$("instX").onclick=function(){try{sessionStorage.setItem("mls_inst","1")}catch(x){}hide()};
+$("instOk").onclick=function(){help.classList.remove("show")};
+})();
+</script>
+<div id="offb" class="glass" role="status" hidden>You are offline. Showing the saved version.</div>
+<script>
+(function(){var b=document.getElementById("offb");if(!b)return;function f(){b.hidden=navigator.onLine!==false}window.addEventListener("online",f);window.addEventListener("offline",f);f()})();
+</script>
+<script>
+/* Auto-update: installed apps and open tabs pick up new code by themselves */
+(function(){
+if(!/^https?:$/.test(location.protocol)||!("serviceWorker"in navigator))return;
+var pending=false,t=null,base=null,loadedOffline=navigator.onLine===false,lastIn=0,hadCtl=!!navigator.serviceWorker.controller;
+document.addEventListener("input",function(){lastIn=Date.now()},true);
+function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACTIVE!=="undefined"&&ACTIVE)return true;return Date.now()-lastIn<120000}
+function go(){pending=true;try{sessionStorage.setItem("mls_upd","1")}catch(x){}try{reload()}catch(x){}}
+function reload(){clearTimeout(t);if(!pending)return;if(busy()){t=setTimeout(reload,15000)}else location.reload()}
+navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadCtl)go();hadCtl=true});
+function tag(){return fetch(location.pathname+location.search,{method:"HEAD",cache:"no-store"}).then(function(r){return r.ok?(r.headers.get("etag")||r.headers.get("last-modified")||r.headers.get("content-length")):null}).catch(function(){return null})}
+function check(){if(navigator.onLine===false)return;
+ if(window.mlsReg)try{window.mlsReg.update()}catch(x){}
+ tag().then(function(v){if(!v)return;if(base===null){base=v;if(loadedOffline){loadedOffline=false;go()}return}if(v!==base)go()})}
+window.addEventListener("load",function(){setTimeout(check,3000)});
+window.addEventListener("online",check);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});
+setInterval(check,5*60*1000);
+try{if(sessionStorage.getItem("mls_upd")==="1"){sessionStorage.removeItem("mls_upd");window.addEventListener("load",function(){var b=document.createElement("div");b.className="glass";b.setAttribute("role","status");b.textContent="Updated to the latest version";b.style.cssText="position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:96;padding:8px 16px;border-radius:999px;font:700 13px system-ui,sans-serif;white-space:nowrap";document.body.append(b);setTimeout(function(){b.remove()},3500)})}}catch(x){}
+})();
+</script>
+</body></html>
