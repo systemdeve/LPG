@@ -103,7 +103,7 @@ h2{font-size:18px;margin:0 0 10px}
 <div id="toast" role="status"></div>
 <script>
 var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"};
-var RIDER_RE=/@rider\.marklpg\.ph$/i,GAP=10000,STALE=10*60*1000;
+var RIDER_RE=/@rider\.marklpg\.ph$/i,GAP=5000,STALE=10*60*1000;
 var $=function(i){return document.getElementById(i)},db,au,me=null,nm="",ORD=[],TRK={},gotO=false,gotT=false,resumed=false,watching=false;
 var ACTIVE=null,watchId=null,timer=null,ticker=null,lastPos=null,lastSent=0,sending=false,startedAt=null,wake=null,gpsErr="";
 var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
