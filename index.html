@@ -471,40 +471,48 @@ $("pgo").onclick=function(){$("perr").textContent="";var b=this;b.disabled=true;
 $("pclr").onclick=function(){PIN=null;if(mk){map.removeLayer(mk);mk=null}$("pclr").hidden=true;$("ptxt").textContent="Pin removed."};
 })();
 
-/* live order status + rider map */
+/* live order status + map of the order and the rider */
 (function(){
 var $=function(i){return document.getElementById(i)};
 var STEPS=[["new","Received"],["confirmed","Confirmed"],["out for delivery","On the way"],["delivered","Delivered"]];
-var us=null,ut=null,map=null,rm=null,dm=null,dest=null,fix=null,fitted=false,tick=null;
-function stopTrack(){if(ut){ut();ut=null}clearInterval(tick);tick=null;if(map){map.remove();map=null}rm=dm=null;fix=null;fitted=false;$("tmapw").hidden=true;$("twait").hidden=true}
-function stop(){if(us){us();us=null}stopTrack()}
+var us=null,ut=null,map=null,rm=null,dm=null,dest=null,fix=null,fitted=false,tick=null,mapP=null;
+function killMap(){if(map){map.remove();map=null}rm=dm=null;fitted=false;mapP=null;$("tmapw").hidden=true}
+function stopRider(){if(ut){ut();ut=null}clearInterval(tick);tick=null;fix=null;if(rm&&map){map.removeLayer(rm)}rm=null;fitted=false;$("twait").hidden=true;$("tstale").hidden=true;paintInfo()}
+function stop(){if(us){us();us=null}stopRider();killMap()}
 function render(st){var i=-1;STEPS.forEach(function(s,n){if(s[0]===st)i=n});var T=$("tst");T.textContent="";
  if(st==="cancelled"){T.hidden=true}else{T.hidden=false;STEPS.forEach(function(s,n){var d=document.createElement("div"),b=document.createElement("i");b.textContent=n<i||st==="delivered"?"\u2713":String(n+1);d.append(b,document.createTextNode(s[1]));if(n<=i)d.className="on"+(n===i?" cur":"");T.append(d)})}
  $("tmsg").textContent=SL[st]||st;$("tlive").hidden=false}
 function ageTxt(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+" sec ago":Math.round(s/60)+" min ago"}
-function paintInfo(){if(!fix)return;var I=$("tinfo");I.textContent="";var ms=fix.updatedAt?fix.updatedAt.toMillis():Date.now();
+function paintInfo(){var I=$("tinfo");I.textContent="";
+ if(!fix){if(dest&&map)I.textContent="The pin shows your delivery location. Your rider will appear on the map when your order is on the way.";return}
+ var ms=fix.updatedAt?fix.updatedAt.toMillis():Date.now();
  function item(l,v){var s=document.createElement("span"),m=document.createElement("small");m.textContent=l;s.append(m,document.createTextNode(v));I.append(s)}
  item("Rider",fix.riderName||"Your rider");
  if(dest){var km=mlsKm(fix.lat,fix.lng,dest.lat,dest.lng);item("Distance",km<1?Math.round(km*1000)+" m":km.toFixed(1)+" km");item("Arrival (estimate)",km<0.15?"Almost there!":"~"+Math.max(1,Math.round(km/20*60))+" min")}
  item("Updated",ageTxt(ms));var w=$("tstale");w.hidden=!(Date.now()-ms>120000);w.textContent="The rider's location has not updated for a while. They may have lost signal."}
-function update(){if(!fix)return;$("twait").hidden=true;$("tmapw").hidden=false;
- mlsLeaflet().then(function(){if(!fix)return;
-  if(!map){map=L.map("tmap");mlsTiles(map);fitted=false}
-  var ll=[fix.lat,fix.lng];if(!rm)rm=L.marker(ll,{icon:mlsIcon("&#128666;")}).addTo(map);else rm.setLatLng(ll);
-  if(dest&&!dm)dm=L.marker([dest.lat,dest.lng],{icon:mlsIcon("&#128205;","d")}).addTo(map);
-  map.invalidateSize();var pts=dest?[ll,[dest.lat,dest.lng]]:[ll];
-  if(!fitted){if(dest)map.fitBounds(pts,{padding:[40,40],maxZoom:17});else map.setView(ll,16);fitted=true}else if(!map.getBounds().contains(ll)){dest?map.fitBounds(pts,{padding:[40,40],maxZoom:17}):map.panTo(ll)}
-  paintInfo()}).catch(function(){$("tinfo").textContent="Map unavailable right now. Your rider is on the way."})}
+function ensureMap(){$("tmapw").hidden=false;if(map)return Promise.resolve();if(mapP)return mapP;
+ mapP=mlsLeaflet().then(function(){if(map)return;map=L.map("tmap");mlsTiles(map);if(dest)dm=L.marker([dest.lat,dest.lng],{icon:mlsIcon("&#128205;","d")}).addTo(map);
+  map.setView(dest?[dest.lat,dest.lng]:[14.5995,120.9842],dest?16:12);fitted=false;setTimeout(function(){if(map)map.invalidateSize()},60)}).catch(function(){mapP=null;$("tinfo").textContent="Map unavailable right now."});return mapP}
+function drawFix(){ensureMap().then(function(){if(!map||!fix)return;
+ var ll=[fix.lat,fix.lng];if(!rm)rm=L.marker(ll,{icon:mlsIcon("&#128666;"),zIndexOffset:500}).addTo(map);else rm.setLatLng(ll);
+ map.invalidateSize();var pts=dest?[ll,[dest.lat,dest.lng]]:[ll];
+ if(!fitted){if(dest)map.fitBounds(pts,{padding:[40,40],maxZoom:17});else map.setView(ll,16);fitted=true}else if(!map.getBounds().contains(ll)){dest?map.fitBounds(pts,{padding:[40,40],maxZoom:17}):map.panTo(ll)}
+ paintInfo()})}
 function watchRider(db,id){if(ut)return;$("twait").hidden=false;
- ut=db.collection("tracking").doc(id).onSnapshot(function(s){if(!s.exists){fix=null;if(map){map.remove();map=null;rm=dm=null}$("tmapw").hidden=true;$("twait").hidden=false;return}fix=s.data();update()},function(){});
+ ut=db.collection("tracking").doc(id).onSnapshot(function(s){
+  if(!s.exists){fix=null;if(rm&&map){map.removeLayer(rm);rm=null}fitted=false;$("twait").hidden=false;$("tstale").hidden=true;if(!dest)killMap();else paintInfo();return}
+  fix=s.data();$("twait").hidden=true;drawFix()},function(){});
  if(!tick)tick=setInterval(paintInfo,5000)}
 function start(id,quiet){id=String(id||"").trim().toUpperCase();if(!id)return;stop();var o=$("tres");if(!quiet)o.textContent="Checking...";
  fb().then(function(f){var db=f.firestore();
   us=db.collection("status").doc(id).onSnapshot(function(s){
-   if(!s.exists){if(!quiet)o.textContent="Order not found. Please check the number.";$("tlive").hidden=true;stopTrack();return}
+   if(!s.exists){if(!quiet)o.textContent="Order not found. Please check the number.";$("tlive").hidden=true;stopRider();killMap();return}
    o.textContent="";var d=s.data();dest=(typeof d.lat==="number"&&typeof d.lng==="number")?{lat:d.lat,lng:d.lng}:null;render(d.status);
-   if(d.status==="out for delivery")watchRider(db,id);else stopTrack();
-   try{if(d.status==="delivered"||d.status==="cancelled")localStorage.removeItem("mls_last");else localStorage.setItem("mls_last",id)}catch(x){}
+   var live=d.status!=="delivered"&&d.status!=="cancelled";
+   if(!live){stopRider();killMap();try{localStorage.removeItem("mls_last")}catch(x){}}
+   else{try{localStorage.setItem("mls_last",id)}catch(x){}
+    if(d.status==="out for delivery")watchRider(db,id);else stopRider();
+    if(dest)ensureMap().then(paintInfo);else if(!fix&&map)killMap()}
   },function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})
  }).catch(function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})}
 window.mlsTrack=function(id){var t=$("ti");t.value=id;start(id)};
@@ -523,7 +531,7 @@ window.addEventListener("load",function(){var id=null;try{id=localStorage.getIte
 if(!/^https?:$/.test(location.protocol)||!("serviceWorker"in navigator))return;
 var pending=false,t=null,base=null,loadedOffline=navigator.onLine===false,lastIn=0,hadCtl=!!navigator.serviceWorker.controller;
 document.addEventListener("input",function(){lastIn=Date.now()},true);
-function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACTIVE!=="undefined"&&ACTIVE)return true;return Date.now()-lastIn<120000}
+function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;return Date.now()-lastIn<120000}
 function go(){pending=true;try{sessionStorage.setItem("mls_upd","1")}catch(x){}try{reload()}catch(x){}}
 function reload(){clearTimeout(t);if(!pending)return;if(busy()){t=setTimeout(reload,15000)}else location.reload()}
 navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadCtl)go();hadCtl=true});
