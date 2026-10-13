@@ -106,6 +106,34 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 #admDlg .as:disabled{opacity:.6;cursor:wait}
 @media(prefers-reduced-motion:reduce){#admDlg[open]{animation:none}}
 </style>
+<style>
+#rvDlg{border:0;padding:0;border-radius:24px;width:min(94vw,420px);max-width:none;background:var(--card);color:var(--ink);box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;max-height:92vh}
+#rvDlg::backdrop{background:rgba(20,10,4,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#rvDlg[open]{animation:rvIn .3s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes rvIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+#rvDlg .rh{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:22px 22px 18px;text-align:center}
+#rvDlg .rh h3{margin:0;font-size:21px;font-weight:800}
+#rvDlg .rh p{margin:4px 0 0;font-size:13px;opacity:.92}
+#rvDlg .rb{padding:20px 22px 22px}
+#rvDlg .rs{display:flex;justify-content:center;gap:6px;margin:2px 0 4px}
+#rvDlg .rs button{width:52px;height:52px;border:0;background:transparent;padding:0;cursor:pointer;color:var(--line);transition:transform .12s,color .12s;border-radius:12px;display:grid;place-items:center}
+#rvDlg .rs button svg{width:42px;height:42px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
+#rvDlg .rs button.on{color:#f5a524}#rvDlg .rs button.on svg{fill:currentColor}
+#rvDlg .rs button:hover{transform:scale(1.12)}
+#rvDlg .rs button:focus-visible{outline:3px solid rgba(232,89,12,.45)}
+#rvDlg .rl{text-align:center;font-weight:800;color:var(--brand);min-height:24px;margin:0 0 12px}
+#rvDlg label{display:block;font-size:13px;font-weight:700;margin:0 0 6px}
+#rvDlg textarea{display:block;width:100%;box-sizing:border-box;min-height:104px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px;resize:vertical;outline:0}
+#rvDlg textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(232,89,12,.18)}
+#rvDlg .rc{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin:6px 0 10px}
+#rvDlg .rm{min-height:20px;font-size:14px;font-weight:600;color:#d32f2f;margin:0 0 8px}
+#rvDlg .rn{font-size:12px;color:var(--mute);text-align:center;margin:10px 0 0}
+#rvDlg .rbtn{display:block;width:100%;height:50px;border:0;border-radius:14px;background:var(--brand);color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+#rvDlg .rbtn:disabled{opacity:.5;cursor:not-allowed}
+#rvDlg .rt{text-align:center;padding:10px 0 4px}#rvDlg .rt b{display:block;font-size:20px;margin:6px 0}#rvDlg .rt span{color:var(--mute)}
+#rvDlg .rt .big{font-size:48px;line-height:1}
+@media(prefers-reduced-motion:reduce){#rvDlg[open]{animation:none}}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -200,9 +228,9 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 </section>
 <section id="track"><h2>Track your order</h2><p class="sub">Enter the order number you received.</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ti" placeholder="LPG-XXXXXX" style="max-width:240px"><button class="btn" id="tb" type="button" style="padding:10px 20px">Check</button></div><p id="tres" style="font-weight:600"></p></section>
-<section id="reviews"><h2>Customer reviews</h2><p class="sub">Tell others about your delivery.</p>
-<div id="rl" class="grid"><p class="sub">No reviews yet. Be the first!</p></div>
-<form id="rf" style="margin-top:16px"><div><label>Your name</label><input id="rn" required maxlength="40"></div><div><label>Rating</label><select id="rs"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select></div><div class="full"><label>Your review</label><textarea id="rtx" rows="2" required maxlength="400"></textarea></div><div class="full"><button class="btn" type="submit">Post review</button></div></form></section>
+<section id="reviews"><h2>Customer reviews</h2><p class="sub">See what customers say about our deliveries.</p>
+<div id="rl" class="grid"><p class="sub">No reviews yet. Reviews appear after a delivery is completed.</p></div>
+<p class="sub" style="margin-top:16px">Every review comes from a real delivery. After your order is delivered, you will be asked to rate it with stars and share your feedback.</p></section>
 <section id="contact"><h2>Contact &amp; payment</h2><p class="sub">Reach us any way you like.</p>
 <div class="grid"><a class="card" href="tel:+639000000000"><b>Call</b><br><small>0900 000 0000</small></a><a class="card" href="https://m.me/YOUR_PAGE_NAME"><b>Messenger</b><br><small>Chat with us</small></a><a class="card" href="viber://chat?number=%2B639000000000"><b>Viber</b><br><small>Chat with us</small></a><a class="card" href="https://www.google.com/maps/search/?api=1&amp;query=YOUR+STORE+ADDRESS"><b>Find our store</b><br><small>Open in Google Maps</small></a><div class="card"><b>GCash</b><br><small>Send payment to 0900 000 0000</small></div></div></section>
 </main>
@@ -236,8 +264,8 @@ $("f").onsubmit=async function(e){e.preventDefault();
  bt.disabled=true;bt.textContent="Sending...";
  try{await loadFB();if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
   var ph={id:await b64(idBlob),selfie:await b64(selfBlob),createdAt:firebase.firestore.FieldValue.serverTimestamp(),expireAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+30*864e5))};if(ph.id.length+ph.selfie.length>900000)throw 0;await firebase.firestore().collection("photos").doc(oid).set(ph);d.hasPhotos=true;d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
-  await firebase.firestore().collection("orders").doc(oid).set(d);await firebase.firestore().collection("status").doc(oid).set({status:"new"});try{localStorage.setItem("mls_c",JSON.stringify({n:d.name,p:d.phone,a:d.address}))}catch(x){}
-  this.innerHTML='<div class="full ok">Thank you! Your order <b>'+oid+'</b> was received. We will text you to confirm. Use this number to track your order.</div>';
+  await firebase.firestore().collection("orders").doc(oid).set(d);await firebase.firestore().collection("status").doc(oid).set({status:"new"});try{localStorage.setItem("mls_c",JSON.stringify({n:d.name,p:d.phone,a:d.address}))}catch(x){};try{window.mlsAddPending&&window.mlsAddPending(oid,d.name)}catch(x){}
+  this.innerHTML='<div class="full ok">Thank you! Your order <b>'+oid+'</b> was received. We will text you to confirm. Use this number to track your order. After delivery, you will be asked to rate it.</div>';
  }catch(x){alert("Sorry, we could not send your order. Please try again or call us.");bt.disabled=false;bt.textContent="Send Order";}
 };
 
@@ -257,7 +285,6 @@ var SL={"new":"Received. We will confirm soon.","confirmed":"Confirmed. Your ord
 $("tb").onclick=function(){var id=$("ti").value.trim().toUpperCase(),o=$("tres");if(!id)return;o.textContent="Checking...";fb().then(function(f){return f.firestore().collection("status").doc(id).get()}).then(function(s){o.textContent=s.exists?(SL[s.data().status]||s.data().status):"Order not found. Please check the number.";}).catch(function(){o.textContent="Tracking is not available right now. Please call us.";});};
 function stars(n){return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 if(FIREBASE_CONFIG)fb().then(function(f){return f.firestore().collection("reviews").where("approved","==",true).limit(10).get()}).then(function(q){var b=$("rl");if(q.empty)return;b.textContent="";q.forEach(function(d){var r=d.data(),c=document.createElement("div"),h=document.createElement("b"),p=document.createElement("p"),s=document.createElement("span");c.className="card";s.className="stars";s.textContent=stars(r.rating|0);h.textContent=r.name+" ";p.style.margin="6px 0 0";p.textContent=r.text;h.append(s);c.append(h,p);b.append(c);});}).catch(function(){});
-$("rf").onsubmit=function(e){e.preventDefault();if(!FIREBASE_CONFIG){alert("Preview mode: reviews are not connected yet.");return;}fb().then(function(f){return f.firestore().collection("reviews").add({name:$("rn").value.slice(0,40),rating:Number($("rs").value),text:$("rtx").value.slice(0,400),approved:false,createdAt:f.firestore.FieldValue.serverTimestamp()})}).then(function(){$("rf").innerHTML='<div class="ok">Thank you! Your review will show after we approve it.</div>';}).catch(function(){alert("Could not post your review. Please try again.");});};
 document.querySelectorAll(".pvl").forEach(function(a){a.onclick=function(e){e.preventDefault();if($("pd").showModal)$("pd").showModal();}});$("pc").onclick=function(){$("pd").close();};
 if(FIREBASE_CONFIG)fb().then(function(f){return f.firestore().collection("settings").doc("shop").get()}).then(function(s){if(!s.exists)return;var d=s.data(),P=d.price||{},O=d.out||[],F=d.fee||{};
  document.querySelectorAll("[data-k]").forEach(function(e){var k=e.getAttribute("data-k"),sold=O.indexOf(k)>-1;if(e.tagName==="OPTION"){if(P[k]){e.value=P[k];e.textContent=k+" kg – "+peso(Number(P[k]));}if(sold){e.disabled=true;e.textContent+=" (sold out)";}}else{var pr=e.querySelector(".price");if(P[k])pr.textContent=peso(Number(P[k]));if(sold)pr.textContent="Sold out";}});
@@ -324,6 +351,75 @@ $("instBtn").onclick=function(){
 };
 $("instX").onclick=function(){try{sessionStorage.setItem("mls_inst","1")}catch(x){}hide()};
 $("instOk").onclick=function(){help.classList.remove("show")};
+})();
+</script>
+<script>
+/* Required review + feedback for every delivered order */
+(function(){
+var KEY="mls_pend",LAB=["","Poor","Fair","Good","Very good","Excellent"],dlg=null,asking=false,rating=0,cur=null;
+var STAR='<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>';
+function get(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(x){return[]}}
+function put(a){try{localStorage.setItem(KEY,JSON.stringify(a))}catch(x){}}
+function short(n){var p=String(n||"").trim().split(/\s+/).filter(Boolean);return p.length>1?p[0]+" "+p[p.length-1].charAt(0).toUpperCase()+".":(p[0]||"Customer")}
+window.mlsAddPending=function(id,name){var a=get().filter(function(x){return x.id!==id});a.push({id:id,n:short(name).slice(0,40)});put(a)};
+function ready(){var s=document.getElementById("splash");return!s||s.classList.contains("done")}
+function check(){
+ if(asking||!FIREBASE_CONFIG)return;var a=get();if(!a.length)return;
+ if(!ready()){setTimeout(check,800);return}
+ fb().then(function(f){var d=f.firestore();return Promise.all(a.map(function(x){return d.collection("status").doc(x.id).get().then(function(s){return{x:x,st:s.exists?s.data().status:null}})}))})
+ .then(function(rs){var drop=rs.filter(function(r){return r.st==="cancelled"}).map(function(r){return r.x.id});if(drop.length)put(get().filter(function(k){return drop.indexOf(k.id)<0}));
+  var due=rs.filter(function(r){return r.st==="delivered"})[0];if(due)ask(due.x)}).catch(function(){});
+}
+function build(){
+ dlg=document.createElement("dialog");dlg.id="rvDlg";
+ dlg.innerHTML='<div class="rh"><h3>How was your delivery?</h3><p id="rvOid"></p></div><div class="rb" id="rvBody">'
+ +'<div class="rs" role="radiogroup" aria-label="Rating"></div><div class="rl" id="rvLab" aria-live="polite">Tap a star to rate</div>'
+ +'<label for="rvTx">Your feedback</label><textarea id="rvTx" maxlength="400" placeholder="Tell us about the rider, timing and the tank..."></textarea>'
+ +'<div class="rc"><span>At least 5 characters</span><span id="rvCt">0/400</span></div><div class="rm" id="rvMsg" role="alert"></div>'
+ +'<button type="button" class="rbtn" id="rvGo" disabled>Submit review</button><p class="rn">Your review is required to continue ordering. Thank you!</p></div>';
+ document.body.append(dlg);
+ var row=dlg.querySelector(".rs");
+ for(var i=1;i<=5;i++){(function(n){var b=document.createElement("button");b.type="button";b.innerHTML=STAR;b.setAttribute("role","radio");b.setAttribute("aria-checked","false");b.setAttribute("aria-label",n+" star"+(n>1?"s":"")+" - "+LAB[n]);
+  b.onclick=function(){rating=n;paint(n);upd()};
+  b.onmouseenter=function(){paint(n,true)};b.onfocus=function(){};
+  b.onkeydown=function(e){if(e.key==="ArrowRight"||e.key==="ArrowUp"){e.preventDefault();rating=Math.min(5,(rating||n)+(rating?1:0));paint(rating);upd();row.children[rating-1].focus()}else if(e.key==="ArrowLeft"||e.key==="ArrowDown"){e.preventDefault();rating=Math.max(1,(rating||n)-1);paint(rating);upd();row.children[rating-1].focus()}};
+  row.append(b)})(i)}
+ row.onmouseleave=function(){paint(rating)};
+ dlg.addEventListener("cancel",function(e){e.preventDefault()});
+ dlg.querySelector("#rvTx").oninput=function(){dlg.querySelector("#rvCt").textContent=this.value.length+"/400";upd()};
+ dlg.querySelector("#rvGo").onclick=submit;
+}
+function paint(n,hover){var row=dlg.querySelector(".rs");[].forEach.call(row.children,function(b,i){b.classList.toggle("on",i<n);b.setAttribute("aria-checked",String(!hover&&i===rating-1))});dlg.querySelector("#rvLab").textContent=n?LAB[n]:"Tap a star to rate"}
+function upd(){dlg.querySelector("#rvGo").disabled=!(rating>0&&dlg.querySelector("#rvTx").value.trim().length>=5)}
+function ask(x){
+ asking=true;cur=x;rating=0;if(!dlg)build();
+ dlg.querySelector("#rvOid").textContent="Order "+x.id+" was delivered";
+ dlg.querySelector("#rvBody").hidden=false;
+ var t=dlg.querySelector("#rvThanks");if(t)t.remove();
+ dlg.querySelector("#rvTx").value="";dlg.querySelector("#rvCt").textContent="0/400";dlg.querySelector("#rvMsg").textContent="";paint(0);upd();
+ var g=dlg.querySelector("#rvGo");g.textContent="Submit review";
+ if(!dlg.open)dlg.showModal();
+}
+function submit(){
+ var g=dlg.querySelector("#rvGo"),m=dlg.querySelector("#rvMsg"),tx=dlg.querySelector("#rvTx").value.trim();
+ if(!(rating>0&&tx.length>=5)){m.textContent="Please pick a star rating and write your feedback.";return}
+ g.disabled=true;g.textContent="Sending...";m.textContent="";
+ fb().then(function(f){return f.firestore().collection("reviews").doc(cur.id).set({orderId:cur.id,name:cur.n,rating:rating,text:tx.slice(0,400),approved:false,createdAt:f.firestore.FieldValue.serverTimestamp()})})
+ .then(function(){put(get().filter(function(k){return k.id!==cur.id}));thanks()})
+ .catch(function(){m.textContent="Could not send your review. Please check your connection and try again.";g.disabled=false;g.textContent="Submit review"});
+}
+function thanks(){
+ var body=dlg.querySelector("#rvBody");body.hidden=true;
+ var t=document.createElement("div");t.id="rvThanks";t.className="rb rt";
+ t.innerHTML='<div class="big">&#127881;</div><b>Thank you!</b><span>Your review helps other customers. It will appear after we approve it.</span>';
+ var b=document.createElement("button");b.type="button";b.className="rbtn";b.style.marginTop="18px";b.textContent="Done";
+ b.onclick=function(){dlg.close();asking=false;cur=null;setTimeout(check,400)};
+ t.append(b);dlg.append(t);
+}
+window.addEventListener("load",function(){setTimeout(check,1200)});
+document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});
+window.addEventListener("focus",check);
+setInterval(check,60000);
 })();
 </script>
 </body>
