@@ -76,6 +76,36 @@ dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);co
 #instHelp b{font-size:17px}#instHelp ol{margin:8px 0 12px;padding-left:20px}#instHelp button{border-radius:999px;padding:8px 18px;font:700 14px system-ui,sans-serif;cursor:pointer}
 @media(prefers-reduced-motion:reduce){#inst.show,#instHelp.show{animation:none}}
 </style>
+<style>
+#admDlg{border:0;padding:0;border-radius:22px;width:min(92vw,380px);max-width:none;background:var(--card);color:var(--ink);box-shadow:0 24px 70px rgba(0,0,0,.35);overflow:hidden}
+#admDlg::backdrop{background:rgba(20,10,4,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#admDlg[open]{animation:admIn .28s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes admIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+#admDlg .ah{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:22px 22px 18px;display:flex;align-items:center;gap:14px;position:relative}
+#admDlg .ai{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
+#admDlg .ai svg{width:24px;height:24px}
+#admDlg .ah h3{margin:0;font-size:20px;font-weight:800;line-height:1.2}
+#admDlg .ah p{margin:2px 0 0;font-size:13px;opacity:.9}
+#admDlg .ax{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:15px;cursor:pointer;display:grid;place-items:center;padding:0}
+#admDlg form{display:block;background:none;border:0;border-radius:0;padding:20px 22px 22px;margin:0}
+#admDlg .af{margin:0 0 14px}
+#admDlg label{display:block;font-size:13px;font-weight:700;margin:0 0 6px;color:var(--ink)}
+#admDlg .aw{position:relative}
+#admDlg input{display:block;width:100%;box-sizing:border-box;height:48px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px;outline:0;transition:border-color .15s,box-shadow .15s}
+#admDlg input:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(232,89,12,.18)}
+#admDlg .aw input{padding-right:52px}
+#admDlg .ae{position:absolute;top:50%;right:6px;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:var(--mute);cursor:pointer;display:grid;place-items:center;padding:0}
+#admDlg .ae:hover,#admDlg .ae[aria-pressed="true"]{color:var(--brand)}
+#admDlg .ae svg{width:22px;height:22px}
+#admDlg .am{min-height:20px;font-size:14px;color:#d32f2f;margin:-4px 0 10px;font-weight:600}
+#admDlg .am.ok{color:var(--mute)}
+#admDlg .ar{display:flex;gap:10px}
+#admDlg .ar button{flex:1;height:48px;border-radius:12px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:0;white-space:nowrap}
+#admDlg .ab{border:1.5px solid var(--brand);background:transparent;color:var(--brand)}
+#admDlg .as{border:0;background:var(--brand);color:#fff}
+#admDlg .as:disabled{opacity:.6;cursor:wait}
+@media(prefers-reduced-motion:reduce){#admDlg[open]{animation:none}}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -248,26 +278,28 @@ lg.style.userSelect="none";lg.style.webkitTapHighlightColor="transparent";
 var n=0,t,dlg;
 lg.addEventListener("click",function(){n++;clearTimeout(t);t=setTimeout(function(){n=0},2000);if(n>=5){n=0;openBox()}});
 function loadAuth(){return fb().then(function(){if(firebase.auth)return;return new Promise(function(ok,no){var s=document.createElement("script");s.src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})})}
+var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYEOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a19.8 19.8 0 0 1 5.1-5.9M9.9 5.1A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a19.9 19.9 0 0 1-3.2 4.2M14.1 14.1A3 3 0 1 1 9.9 9.9M1 1l22 22"/></svg>';
 function openBox(){
  if(dlg){dlg.showModal();return}
- dlg=document.createElement("dialog");
- dlg.style.cssText="border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);padding:18px;max-width:320px;width:90%";
- var f=document.createElement("form"),h=document.createElement("h3"),em=document.createElement("input"),pw=document.createElement("input"),msg=document.createElement("div"),row=document.createElement("div"),go=document.createElement("button"),cx=document.createElement("button");
- h.textContent="Admin access";h.style.margin="0 0 10px";
- em.type="email";em.placeholder="Admin email";em.required=true;em.autocomplete="username";
- pw.type="password";pw.placeholder="Password";pw.required=true;pw.autocomplete="current-password";
- [em,pw].forEach(function(i){i.style.cssText="display:block;width:100%;margin:0 0 8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;box-sizing:border-box"});
- msg.style.cssText="color:#d32f2f;font-size:14px;min-height:18px;margin-bottom:6px";
- row.style.cssText="display:flex;gap:8px;justify-content:flex-end";
- go.textContent="Sign in";go.className="btn";go.type="submit";
- cx.textContent="Cancel";cx.type="button";cx.className="btn ghost";
- row.append(cx,go);f.append(h,em,pw,msg,row);dlg.append(f);document.body.append(dlg);
- cx.onclick=function(){dlg.close()};
- dlg.addEventListener("close",function(){pw.value="";msg.textContent=""});
- f.onsubmit=function(e){e.preventDefault();go.disabled=true;msg.textContent="Checking...";msg.style.color="inherit";
+ dlg=document.createElement("dialog");dlg.id="admDlg";
+ dlg.innerHTML='<div class="ah"><div class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div><h3>Admin access</h3><p>Authorized staff only</p></div><button type="button" class="ax" aria-label="Close">&#x2715;</button></div>'
+ +'<form autocomplete="on"><div class="af"><label for="admEm">Email</label><input id="admEm" type="email" placeholder="admin@email.com" required autocomplete="username"></div>'
+ +'<div class="af"><label for="admPw">Password</label><div class="aw"><input id="admPw" type="password" placeholder="Enter your password" required autocomplete="current-password"><button type="button" class="ae" aria-label="Show password" aria-pressed="false"></button></div></div>'
+ +'<div class="am" role="status" aria-live="polite"></div>'
+ +'<div class="ar"><button type="button" class="ab">Cancel</button><button type="submit" class="as">Sign in</button></div></form>';
+ document.body.append(dlg);
+ var f=dlg.querySelector("form"),em=dlg.querySelector("#admEm"),pw=dlg.querySelector("#admPw"),eye=dlg.querySelector(".ae"),msg=dlg.querySelector(".am"),go=dlg.querySelector(".as");
+ eye.innerHTML=EYE;
+ eye.onclick=function(){var show=pw.type==="password";pw.type=show?"text":"password";eye.innerHTML=show?EYEOFF:EYE;eye.setAttribute("aria-pressed",show);eye.setAttribute("aria-label",show?"Hide password":"Show password");pw.focus()};
+ function close(){dlg.close()}
+ dlg.querySelector(".ax").onclick=close;dlg.querySelector(".ab").onclick=close;
+ dlg.addEventListener("click",function(e){if(e.target===dlg)close()});
+ dlg.addEventListener("close",function(){pw.value="";pw.type="password";eye.innerHTML=EYE;eye.setAttribute("aria-pressed","false");msg.textContent="";msg.className="am";go.disabled=false;go.textContent="Sign in"});
+ f.onsubmit=function(e){e.preventDefault();go.disabled=true;go.textContent="Signing in...";msg.className="am ok";msg.textContent="Checking...";
   loadAuth().then(function(){return firebase.auth().signInWithEmailAndPassword(em.value.trim(),pw.value)})
   .then(function(){location.href="admin.html"})
-  .catch(function(){msg.style.color="#d32f2f";msg.textContent="Wrong email or password.";go.disabled=false;pw.value=""})};
+  .catch(function(){msg.className="am";msg.textContent="Wrong email or password.";go.disabled=false;go.textContent="Sign in";pw.value="";pw.focus()})};
  dlg.showModal();em.focus();
 }
 })();
