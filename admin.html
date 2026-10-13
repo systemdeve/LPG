@@ -173,7 +173,7 @@ function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=f
  au.onAuthStateChanged(function(u){$("login").hidden=!!u;$("app").hidden=!u;if(u){$("who").textContent=u.email||"";watch()}});
  $("lf").onsubmit=function(e){e.preventDefault();var b=$("lbtn");b.disabled=true;b.textContent="Signing in...";$("le").textContent="";
   au.signInWithEmailAndPassword($("em").value.trim(),$("pw").value).catch(function(){$("le").textContent="Wrong email or password.";$("pw").value="";$("pw").focus()}).then(function(){b.disabled=false;b.textContent="Sign in"})};
- $("so").onclick=function(){au.signOut().then(function(){location.reload()})};
+ $("so").onclick=function(){if(!confirm("Are you sure you want to sign out?"))return;au.signOut().then(function(){location.replace("index.html")}).catch(function(){toast("Could not sign out. Try again.")})};
  $("tO").onclick=function(){tab("pO")};$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};
  $("q").oninput=renderOrders;
 }
@@ -239,6 +239,6 @@ function watch(){if(watching)return;watching=true;renderChips();
  db.collection("reviews").where("approved","==",false).onSnapshot(function(q){var L=$("rl");L.textContent="";$("cR").hidden=q.empty;$("cR").textContent=q.size;
   if(q.empty){var e=E("div",null,"empty");e.append(E("b","No reviews waiting"),E("span","New customer reviews will show up here for approval."));L.append(e)}
   q.forEach(function(s){var d=s.data(),c=E("div",null,"c rv"),r=E("div",null,"ra"),n=Math.max(0,Math.min(5,Number(d.rating)||0));
-   c.append(E("h3",d.name||"Customer"),E("div",new Array(n+1).join("\u2605")+new Array(6-n).join("\u2606"),"stars"),E("p",d.text||""));
+   c.append(E("h3",d.name||"Customer"),E("div",d.orderId?"Order "+d.orderId:"","ot"),E("div",new Array(n+1).join("\u2605")+new Array(6-n).join("\u2606"),"stars"),E("p",d.text||""));
    r.append(B("Approve",function(){db.collection("reviews").doc(s.id).update({approved:true}).then(function(){toast("Review approved")})}),B("Delete",function(){if(confirm("Delete this review?"))db.collection("reviews").doc(s.id).delete().then(function(){toast("Review deleted")})},"d"));c.append(r);L.append(c)})})}
 </script></body></html>
