@@ -221,5 +221,37 @@ var lang="en";try{lang=localStorage.getItem("mls_l")||"en"}catch(x){}
 function applyLang(){var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,t;while(n=w.nextNode()){if(n.parentNode.nodeName==="SCRIPT"||n.parentNode.nodeName==="STYLE")continue;if(n._o===undefined){t=n.nodeValue.trim();if(!FIL[t])continue;n._o=n.nodeValue;n._t=n.nodeValue.replace(t,FIL[t]);}n.nodeValue=lang==="fil"?n._t:n._o;}$("lng").textContent=lang==="fil"?"EN":"FIL";document.documentElement.lang=lang==="fil"?"fil":"en";}
 $("lng").onclick=function(e){e.preventDefault();lang=lang==="fil"?"en":"fil";try{localStorage.setItem("mls_l",lang)}catch(x){}applyLang();};applyLang();
 </script>
+<script>
+/* Hidden admin access: click the header logo 5 times */
+(function(){
+var lg=document.querySelector("header .logo");if(!lg)return;
+lg.style.userSelect="none";lg.style.webkitTapHighlightColor="transparent";
+var n=0,t,dlg;
+lg.addEventListener("click",function(){n++;clearTimeout(t);t=setTimeout(function(){n=0},2000);if(n>=5){n=0;openBox()}});
+function loadAuth(){return fb().then(function(){if(firebase.auth)return;return new Promise(function(ok,no){var s=document.createElement("script");s.src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})})}
+function openBox(){
+ if(dlg){dlg.showModal();return}
+ dlg=document.createElement("dialog");
+ dlg.style.cssText="border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);padding:18px;max-width:320px;width:90%";
+ var f=document.createElement("form"),h=document.createElement("h3"),em=document.createElement("input"),pw=document.createElement("input"),msg=document.createElement("div"),row=document.createElement("div"),go=document.createElement("button"),cx=document.createElement("button");
+ h.textContent="Admin access";h.style.margin="0 0 10px";
+ em.type="email";em.placeholder="Admin email";em.required=true;em.autocomplete="username";
+ pw.type="password";pw.placeholder="Password";pw.required=true;pw.autocomplete="current-password";
+ [em,pw].forEach(function(i){i.style.cssText="display:block;width:100%;margin:0 0 8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;box-sizing:border-box"});
+ msg.style.cssText="color:#d32f2f;font-size:14px;min-height:18px;margin-bottom:6px";
+ row.style.cssText="display:flex;gap:8px;justify-content:flex-end";
+ go.textContent="Sign in";go.className="btn";go.type="submit";
+ cx.textContent="Cancel";cx.type="button";cx.className="btn ghost";
+ row.append(cx,go);f.append(h,em,pw,msg,row);dlg.append(f);document.body.append(dlg);
+ cx.onclick=function(){dlg.close()};
+ dlg.addEventListener("close",function(){pw.value="";msg.textContent=""});
+ f.onsubmit=function(e){e.preventDefault();go.disabled=true;msg.textContent="Checking...";msg.style.color="inherit";
+  loadAuth().then(function(){return firebase.auth().signInWithEmailAndPassword(em.value.trim(),pw.value)})
+  .then(function(){location.href="admin.html"})
+  .catch(function(){msg.style.color="#d32f2f";msg.textContent="Wrong email or password.";go.disabled=false;pw.value=""})};
+ dlg.showModal();em.focus();
+}
+})();
+</script>
 </body>
 </html>
