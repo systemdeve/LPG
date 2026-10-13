@@ -272,16 +272,17 @@ function dic(){return L.divIcon({className:"",html:'<div class="mkr d">&#128205;
 function liveOpen(){lvOpen=true;var m=$("amap");leaf().then(function(){if(!amap){m.textContent="";m.style.display="block";amap=L.map("amap").setView([14.5995,120.9842],12);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(amap)}setTimeout(function(){amap.invalidateSize();drawLive(true)},60)}).catch(function(){m.textContent="Map could not load. Check your connection."})}
 function agoTxt(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+"s ago":Math.round(s/60)+" min ago"}
 function ordOf(id){for(var i=0;i<ORD.length;i++)if(ORD[i].id===id)return ORD[i].d;return null}
-function drawLive(fit){var ids=Object.keys(TRK),n=ids.length;$("cL").hidden=!n;$("cL").textContent=n;var A=$("alist");A.textContent="";
+function drawLive(fit){var G={};Object.keys(TRK).forEach(function(id){var t=TRK[id],u=t.riderUid||id,ms=t.updatedAt?t.updatedAt.toMillis():Date.now(),g=G[u]||(G[u]={name:t.riderName||"Rider",lat:t.lat,lng:t.lng,ms:0,ids:[]});g.ids.push(id);if(ms>=g.ms){g.ms=ms;g.lat=t.lat;g.lng=t.lng}});
+ var us=Object.keys(G),n=us.length;$("cL").hidden=!n;$("cL").textContent=n;var A=$("alist");A.textContent="";
  if(!n)A.append(E("p","No rider is sharing a location right now.","ot"));
- if(amap&&window.L){Object.keys(mks).forEach(function(k){if(!TRK[k]){amap.removeLayer(mks[k].r);if(mks[k].d)amap.removeLayer(mks[k].d);delete mks[k]}})}
+ if(amap&&window.L){Object.keys(mks).forEach(function(k){var d=k.indexOf("d_")===0,keep=d?!!TRK[k.slice(2)]:!!G[k];if(!keep){amap.removeLayer(mks[k]);delete mks[k]}})}
  var pts=[];
- ids.forEach(function(id){var t=TRK[id],o=ordOf(id),ms=t.updatedAt?t.updatedAt.toMillis():Date.now(),stale=Date.now()-ms>120000,ll=[t.lat,t.lng];pts.push(ll);
-  if(amap&&window.L){var m=mks[id];if(!m){m=mks[id]={r:L.marker(ll,{icon:ric()}).addTo(amap)};m.r.bindPopup("")}else m.r.setLatLng(ll);m.r.setPopupContent((t.riderName||"Rider")+" - "+id);
-   if(o&&o.lat!=null&&!m.d){m.d=L.marker([o.lat,o.lng],{icon:dic()}).addTo(amap);m.d.bindPopup((o.name||"Customer")+"<br>"+(o.address||""))}}
-  var c=E("div",null,"c"),h=E("div",null,"lvc"),l=E("div");l.append(E("div",id,"oid"),E("div",(t.riderName||"Rider")+" \u00B7 updated "+agoTxt(ms),"ot"));h.append(l,E("span",stale?"No signal":"Live","tag "+(stale?"t-st":"t-ok")));c.append(h);
-  if(o)c.append(E("div",(o.name||"")+" \u00B7 "+(o.address||""),"ot"));
-  var r=E("div",null,"ra");r.style.marginTop="10px";r.append(B("Locate",function(){if(amap)amap.setView(ll,16)},"g"),B("Release rider",function(){if(confirm("Release this delivery from "+(t.riderName||"the rider")+"? They will stop being tracked and another rider can take it."))db.collection("tracking").doc(id).delete().then(function(){toast("Released")}).catch(function(){toast("Could not release")})},"d"));c.append(r);A.append(c)});
+ us.forEach(function(u){var g=G[u],stale=Date.now()-g.ms>120000,ll=[g.lat,g.lng];pts.push(ll);
+  if(amap&&window.L){var m=mks[u];if(!m)m=mks[u]=L.marker(ll,{icon:ric()}).addTo(amap);else m.setLatLng(ll);m.bindPopup(g.name+" - "+g.ids.length+" order"+(g.ids.length>1?"s":""));
+   g.ids.forEach(function(id){var o=ordOf(id);if(o&&o.lat!=null&&!mks["d_"+id]){var dm=mks["d_"+id]=L.marker([o.lat,o.lng],{icon:dic()}).addTo(amap);dm.bindPopup((o.name||"Customer")+"<br>"+(o.address||"")+"<br>"+id)}})}
+  var c=E("div",null,"c"),h=E("div",null,"lvc"),l=E("div");l.append(E("div",g.name+" \u00B7 "+g.ids.length+" delivery"+(g.ids.length>1?"ies":"y"),"oid"),E("div","Updated "+agoTxt(g.ms),"ot"));h.append(l,E("span",stale?"No signal":"Live","tag "+(stale?"t-st":"t-ok")));c.append(h);
+  g.ids.forEach(function(id){var o=ordOf(id),d=E("div",id+(o?" \u00B7 "+(o.name||"")+" \u00B7 "+(o.address||""):""),"ot");d.style.marginTop="6px";c.append(d)});
+  var r=E("div",null,"ra");r.style.marginTop="10px";r.append(B("Locate",function(){if(amap)amap.setView(ll,16)},"g"),B("Release rider",function(){if(confirm("Release all deliveries from "+g.name+"? They will stop being tracked and other riders can take them."))Promise.all(g.ids.map(function(id){return db.collection("tracking").doc(id).delete()})).then(function(){toast("Released")}).catch(function(){toast("Could not release")})},"d"));c.append(r);A.append(c)});
  if(fit&&amap&&pts.length)amap.fitBounds(pts,{padding:[50,50],maxZoom:16})}
 setInterval(function(){if(lvOpen&&!$("lv").hidden)drawLive(false)},10000);
 
@@ -328,7 +329,7 @@ $("instOk").onclick=function(){help.classList.remove("show")};
 if(!/^https?:$/.test(location.protocol)||!("serviceWorker"in navigator))return;
 var pending=false,t=null,base=null,loadedOffline=navigator.onLine===false,lastIn=0,hadCtl=!!navigator.serviceWorker.controller;
 document.addEventListener("input",function(){lastIn=Date.now()},true);
-function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACTIVE!=="undefined"&&ACTIVE)return true;return Date.now()-lastIn<120000}
+function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;return Date.now()-lastIn<120000}
 function go(){pending=true;try{sessionStorage.setItem("mls_upd","1")}catch(x){}try{reload()}catch(x){}}
 function reload(){clearTimeout(t);if(!pending)return;if(busy()){t=setTimeout(reload,15000)}else location.reload()}
 navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadCtl)go();hadCtl=true});
