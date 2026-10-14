@@ -148,6 +148,23 @@ main{padding-bottom:40px}
 <style>
 #offb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:95;padding:8px 16px;border-radius:999px;font:700 13px system-ui,sans-serif;white-space:nowrap}
 </style>
+<style>
+/* ---- mobile responsive pass ---- */
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+img,video{max-width:100%}
+@media(max-width:480px){
+ .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+ .tabs button{height:44px;font-size:14px;padding:0 6px;min-width:0}
+ .oh{flex-wrap:wrap}.oid{font-size:14px;letter-spacing:0;overflow-wrap:anywhere}
+ .kv{grid-template-columns:1fr 1fr!important}
+ .stats{gap:8px}.st{padding:12px}.st b{font-size:20px}
+ .lvc{flex-wrap:wrap}
+ .grid{grid-template-columns:repeat(2,1fr)}
+ .savebar .btn{width:100%}
+ #amap{height:clamp(240px,45vh,380px)}
+}
+@media(max-width:340px){.kv{grid-template-columns:1fr!important}.brand small{display:none}.who{display:none}}
+</style>
 </head><body>
 
 <div id="login" class="lw"><form id="lf" class="lc" autocomplete="on">
@@ -171,7 +188,9 @@ main{padding-bottom:40px}
   <main>
    <section id="pO"><div class="stats" id="stats"></div><div class="bar"><input id="q" type="search" placeholder="Search name, phone or order ID"><div class="chips" id="chips"></div></div><div id="ol"></div></section>
    <section id="rl" hidden></section>
-   <section id="lv" hidden><div class="c sec"><h3>Live deliveries</h3><p>Riders show up here while they share their location for an order that is out for delivery.</p><div id="amap">Open this tab to load the map.</div><div id="alist" style="margin-top:12px"></div></div><div class="c sec"><h3>Rider accounts</h3><p>Riders sign in at <b>rider.html</b> with an account you create in Firebase Console &rarr; Authentication &rarr; Add user. The email must end with <b>@rider.marklpg.ph</b> (for example juan@rider.marklpg.ph). Mark an order <b>out for delivery</b> and any rider can pick it up.</p><a class="btn sm g" href="rider.html" target="_blank" rel="noopener" style="text-decoration:none">Open rider app</a></div></section>
+   <section id="lv" hidden><div class="c sec"><h3>Live deliveries</h3><p>Riders show up here while they share their location for an order that is out for delivery.</p><div id="amap">Open this tab to load the map.</div><div id="alist" style="margin-top:12px"></div></div><div class="c sec"><h3>Rider accounts</h3><p>Create a login for each rider. They sign in at <b>rider.html</b> with this email and password. Share the password with them privately.</p>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div><label for="rn">Rider name</label><input id="rn" type="text" autocomplete="off" placeholder="Juan Dela Cruz"></div><div><label for="re">Email</label><input id="re" type="email" autocomplete="off" placeholder="juan@email.com"></div><div><label for="rp">Password (8+ characters)</label><input id="rp" type="text" autocomplete="off"></div></div>
+<div class="ra" style="margin-top:12px"><button type="button" class="btn sm" id="rcb">Create rider</button><a class="btn sm g" href="rider.html" target="_blank" rel="noopener" style="text-decoration:none">Open rider app</a></div><div id="rmsg" class="ot" role="status" style="margin-top:8px"></div><div id="rlist" style="margin-top:12px"></div></div></section>
    <section id="sl" hidden></section>
   </main>
  </div>
@@ -181,6 +200,7 @@ main{padding-bottom:40px}
 
 <script>
 var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"};
+var ADMIN_EMAIL="clarencecabali533@gmail.com";
 var $=function(i){return document.getElementById(i)},ST=["confirmed","out for delivery","delivered","cancelled"],FILT=["all","new"].concat(ST),db,au,watching=false,ORD=[],FS="all";
 var SZ=["2.7","5","11","22","50"],BR=["Petron Gasul","Solane","Fiesta Gas"],AR=["near","mid","far"],DP={"2.7":260,"5":480,"11":950,"22":1850,"50":4200},DF={near:30,mid:60,far:100};
 var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -201,11 +221,11 @@ if(!FIREBASE_CONFIG){$("le").textContent="Paste your FIREBASE_CONFIG in this fil
 else load(["app","auth","firestore"]).then(start).catch(function(){$("le").textContent="Could not load Firebase. Check your connection."});
 
 function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=firebase.firestore();
- au.onAuthStateChanged(function(u){$("login").hidden=!!u;$("app").hidden=!u;if(u){$("who").textContent=u.email||"";watch()}});
+ au.onAuthStateChanged(function(u){var ok=!!u&&String(u.email||"").toLowerCase()===ADMIN_EMAIL;$("login").hidden=ok;$("app").hidden=!ok;if(u&&!ok)$("le").textContent="This account is not the admin. Sign in with the admin email.";if(ok){$("who").textContent=u.email||"";watch()}});
  $("lf").onsubmit=function(e){e.preventDefault();var b=$("lbtn");b.disabled=true;b.textContent="Signing in...";$("le").textContent="";
   au.signInWithEmailAndPassword($("em").value.trim(),$("pw").value).catch(function(){$("le").textContent="Wrong email or password.";$("pw").value="";$("pw").focus()}).then(function(){b.disabled=false;b.textContent="Sign in"})};
  $("so").onclick=function(){if(!confirm("Are you sure you want to sign out?"))return;au.signOut().then(function(){location.replace("index.html")}).catch(function(){toast("Could not sign out. Try again.")})};
- $("tO").onclick=function(){tab("pO")};$("tL").onclick=function(){tab("lv")};$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};
+ $("tO").onclick=function(){tab("pO")};$("tL").onclick=function(){tab("lv")};$("rcb").onclick=createRider;$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};
  $("q").oninput=renderOrders;
 }
 function tab(x){["pO","lv","rl","sl"].forEach(function(i){$(i).hidden=i!==x});[["tO","pO"],["tL","lv"],["tR","rl"],["tS","sl"]].forEach(function(p){$(p[0]).classList.toggle("on",p[1]===x)});window.scrollTo({top:0});if(x==="lv")liveOpen()}
@@ -286,11 +306,23 @@ function drawLive(fit){var G={};Object.keys(TRK).forEach(function(id){var t=TRK[
  if(fit&&amap&&pts.length)amap.fitBounds(pts,{padding:[50,50],maxZoom:16})}
 setInterval(function(){if(lvOpen&&!$("lv").hidden)drawLive(false)},10000);
 
+/* rider accounts */
+function rmsg(t,bad){var m=$("rmsg");m.textContent=t;m.style.color=bad?"var(--bad)":"var(--ok)"}
+function createRider(){var n=$("rn").value.trim(),e=$("re").value.trim().toLowerCase(),p=$("rp").value;
+ if(n.length<2){rmsg("Enter the rider's name.",1);return}if(!/^\S+@\S+\.\S+$/.test(e)){rmsg("Enter a valid email.",1);return}if(p.length<8){rmsg("Password must be at least 8 characters.",1);return}
+ var b=$("rcb");b.disabled=true;rmsg("Creating...",0);
+ var app2=firebase.apps.filter(function(x){return x.name==="rc"})[0]||firebase.initializeApp(FIREBASE_CONFIG,"rc"),a2=app2.auth();
+ a2.createUserWithEmailAndPassword(e,p).then(function(c){var uid=c.user.uid;
+  return db.collection("riders").doc(uid).set({name:n,email:e,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){return a2.signOut()}).then(function(){$("rn").value="";$("re").value="";$("rp").value="";rmsg("Rider created. They can sign in at rider.html now.",0);toast("Rider created")})})
+ .catch(function(x){var c=x&&x.code||"";rmsg(c==="auth/email-already-in-use"?"That email already has an account. Use a different email for the rider.":c==="auth/weak-password"?"Password is too weak.":c==="permission-denied"||/permission/i.test(String(x&&x.message))?"The account was made but saving the rider failed. Check your Firestore rules.":"Could not create the rider. Check the details and try again.",1)}).then(function(){b.disabled=false})}
+function drawRiders(q){var L=$("rlist");L.textContent="";if(q.empty){L.append(E("p","No riders yet.","ot"));return}
+ q.forEach(function(s){var d=s.data(),r=E("div",null,"lvc"),l=E("div");l.append(E("div",d.name||"Rider","oid"),E("div",d.email||"","ot"));r.append(l,B("Remove access",function(){if(confirm("Remove "+(d.name||"this rider")+"? They will no longer be able to use the rider app."))db.collection("riders").doc(s.id).delete().then(function(){toast("Rider removed")}).catch(function(){toast("Could not remove")})},"d"));r.style.cssText="padding:10px 0;border-top:1px solid var(--line)";L.append(r)})}
 /* realtime */
 function watch(){if(watching)return;watching=true;renderChips();
  db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){
   if(!first)q.docChanges().forEach(function(c){if(c.type==="added"){beep();newN++;document.title="("+newN+") New order - Admin";$("nb").hidden=false;setTimeout(function(){$("nb").hidden=true},8000)}});first=false;
   ORD=[];q.forEach(function(s){ORD.push({id:s.id,d:s.data()})});renderChips();renderOrders()});
+ db.collection("riders").onSnapshot(drawRiders,function(){});
  db.collection("tracking").onSnapshot(function(q){TRK={};q.forEach(function(s){TRK[s.id]=s.data()});drawLive(false)},function(){});
  db.collection("reviews").where("approved","==",false).onSnapshot(function(q){var L=$("rl");L.textContent="";$("cR").hidden=q.empty;$("cR").textContent=q.size;
   if(q.empty){var e=E("div",null,"empty");e.append(E("b","No reviews waiting"),E("span","New customer reviews will show up here for approval."));L.append(e)}
