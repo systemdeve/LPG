@@ -1,4 +1,4 @@
-var V="mark-lpg-v5",CORE=["./","./index.html","./rider.html","./admin.html","./manifest.webmanifest","./manifest-rider.webmanifest","./manifest-admin.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
+var V="mark-lpg-v6",CORE=["./","./index.html","./rider.html","./admin.html","./login.html","./manifest.webmanifest","./manifest-rider.webmanifest","./manifest-admin.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 self.addEventListener("install",function(e){e.waitUntil(caches.open(V).then(function(c){return Promise.all(CORE.map(function(u){return c.add(new Request(u,{cache:"reload"})).catch(function(){})}))}).then(function(){return self.skipWaiting()}))});
 self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return x!==V}).map(function(x){return caches.delete(x)}))}).then(function(){return self.clients.claim()}))});
 self.addEventListener("message",function(e){if(e.data==="skipWaiting")self.skipWaiting()});
