@@ -629,7 +629,8 @@ window.addEventListener("load",function(){var id=null;try{id=localStorage.getIte
 if(!/^https?:$/.test(location.protocol)||!("serviceWorker"in navigator))return;
 var pending=false,t=null,base=null,loadedOffline=navigator.onLine===false,lastIn=0,hadCtl=!!navigator.serviceWorker.controller;
 document.addEventListener("input",function(){lastIn=Date.now()},true);
-function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;return Date.now()-lastIn<120000}
+function dirty(){var els=document.querySelectorAll("form input,form textarea,form select");for(var i=0;i<els.length;i++){var e=els[i],t=e.type;if(t==="hidden"||t==="submit"||t==="button"||t==="password")continue;if(t==="checkbox"||t==="radio"){if(e.checked!==e.defaultChecked)return true}else if(t==="file"){if(e.files&&e.files.length)return true}else if(e.tagName==="SELECT"){if(e.selectedIndex>=0&&e.options[e.selectedIndex]&&!e.options[e.selectedIndex].defaultSelected)return true}else if(e.value!==e.defaultValue)return true}return false}
+function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;var v=document.getElementById("vid");if(v&&!v.hidden)return true;if(dirty())return true;return Date.now()-lastIn<120000}
 function go(){pending=true;try{sessionStorage.setItem("mls_upd","1")}catch(x){}try{reload()}catch(x){}}
 function reload(){clearTimeout(t);if(!pending)return;if(busy()){t=setTimeout(reload,15000)}else location.reload()}
 navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadCtl)go();hadCtl=true});
@@ -671,7 +672,7 @@ function onUser(u){user=u;window.mlsUser=u;flag(!!u);paintBtn();
  db().collection("users").doc(u.uid).get().then(function(s){prof=s.exists?s.data():null;paintBtn();prefill();renderAcct()}).catch(function(){});
  unsub=db().collection("orders").where("uid","==",u.uid).onSnapshot(function(q){HIST=[];q.forEach(function(s){HIST.push({id:s.id,d:s.data()})});
   HIST.sort(function(a,b){return(b.d.createdAt?b.d.createdAt.toMillis():0)-(a.d.createdAt?a.d.createdAt.toMillis():0)});renderAcct();due()},function(){})}
-function due(){if(!window.mlsAskReview)return;for(var i=0;i<HIST.length;i++){var o=HIST[i];if(o.d.status==="delivered"&&!o.d.reviewed&&!(window.mlsReviewed&&window.mlsReviewed(o.id))){window.mlsAskReview(o.id,o.d.name);return}}}
+function due(){if(!window.mlsAskReview)return;for(var i=0;i<HIST.length;i++){var o=HIST[i];var recent=o.d.createdAt&&(Date.now()-o.d.createdAt.toMillis())<14*864e5;if(recent&&o.d.status==="delivered"&&!o.d.reviewed&&!(window.mlsReviewed&&window.mlsReviewed(o.id))){window.mlsAskReview(o.id,o.d.name);return}}}
 function emsg(e,up){var c=e&&e.code||"";
  if(c==="auth/email-already-in-use")return"This email already has an account. Please sign in.";
  if(c==="auth/invalid-email")return"Please enter a valid email address.";
@@ -726,8 +727,14 @@ function buildAcct(){acD=h("dialog","mdl");acD.id="acDlg";
  document.body.append(acD);acD.querySelector(".mx").onclick=function(){acD.close()};acD.addEventListener("click",function(e){if(e.target===acD)acD.close()})}
 function openAcct(){if(!acD)buildAcct();renderAcct(true);if(!acD.open)acD.showModal()}
 function sel(id,txt,start){var s=$(id);if(!s)return;for(var i=0;i<s.options.length;i++){var o=s.options[i].text;if(start?o.indexOf(txt)===0:o===txt){s.selectedIndex=i;return}}}
-function reorder(d){$("n").value=d.name||"";$("p").value=d.phone||"";$("a").value=d.address||"";sel("s",(d.tank||"")+" ",true);$("q").value=d.qty||1;sel("t",d.type);sel("m",d.payment);sel("br",d.brand);sel("sl",d.slot);sel("ar",d.area);
- ["s","q","ar"].forEach(function(i){$(i).dispatchEvent(new Event("change"));$(i).dispatchEvent(new Event("input"))});acD.close();var o=$("order");if(o)o.scrollIntoView({behavior:"smooth"})}
+function fillOrder(d){$("n").value=d.name||"";$("p").value=d.phone||"";$("a").value=d.address||"";sel("s",(d.tank||"")+" ",true);$("q").value=d.qty||1;sel("t",d.type);sel("m",d.payment);sel("br",d.brand);sel("sl",d.slot);sel("ar",d.area);
+ ["s","q","ar"].forEach(function(i){$(i).dispatchEvent(new Event("change"));$(i).dispatchEvent(new Event("input"))})}
+function reorder(d){if(acD&&acD.open)acD.close();
+ if(!$("n")){try{sessionStorage.setItem("mls_re",JSON.stringify(d))}catch(x){}location.reload();return}
+ fillOrder(d);var o=$("order");if(o)o.scrollIntoView({behavior:"smooth"})}
+function applyRe(){var raw=null;try{raw=sessionStorage.getItem("mls_re");sessionStorage.removeItem("mls_re")}catch(x){}if(!raw||!$("n"))return;
+ try{fillOrder(JSON.parse(raw));var o=$("order");if(o)o.scrollIntoView()}catch(x){}}
+window.addEventListener("load",function(){setTimeout(applyRe,300)});
 function track(id){acD.close();if(window.mlsTrack)window.mlsTrack(id);var t=$("track");if(t)t.scrollIntoView({behavior:"smooth"})}
 function stat(l,v){var d=h("div");d.append(h("small",null,l),h("b",null,v));return d}
 function card(o){var d=o.d,s=d.status||"new",c=h("div","hc"),hh=h("div","hh"),l=h("div");
