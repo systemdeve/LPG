@@ -119,7 +119,7 @@ img,video{max-width:100%}
 var FIREBASE_CONFIG={apiKey:"AIzaSyDDAGZkz9YCxbr-jLw-wxr_WvKnmhhYYyM",authDomain:"mark-lpg.firebaseapp.com",projectId:"mark-lpg",storageBucket:"mark-lpg.firebasestorage.app",messagingSenderId:"607042523829",appId:"1:607042523829:web:a10f3bea85a9d44098a4fc"};
 var RIDER_RE=/@rider\.marklpg\.ph$/i,GAP=5000,STALE=10*60*1000,MAXB=5;
 var $=function(i){return document.getElementById(i)},db,au,me=null,nm="",ORD=[],TRK={},gotO=false,gotT=false,resumed=false,watching=false;
-var ACT=[],SEL={},watchId=null,timer=null,ticker=null,lastPos=null,lastSent=0,sending=false,startedAt={},wake=null,gpsErr="",tickN=0,startBtn=null;
+var ACT=[],SEL={},watchId=null,timer=null,ticker=null,lastPos=null,lastSent=0,sending=false,startedAt={},wake=null,gpsErr="",tickN=0,startBtn=null,HAD={},SELF={};
 var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 var EYEOFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a19.8 19.8 0 0 1 5.1-5.9M9.9 5.1A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a19.9 19.9 0 0 1-3.2 4.2M14.1 14.1A3 3 0 1 1 9.9 9.9M1 1l22 22"/></svg>';
 function E(t,x,c){var e=document.createElement(t);if(x!==undefined&&x!==null)e.textContent=x;if(c)e.className=c;return e}
@@ -147,7 +147,7 @@ function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=f
  document.addEventListener("visibilitychange",function(){if(!document.hidden&&ACT.length&&!wake)lock()});
 }
 function saveAct(){try{if(ACT.length)localStorage.setItem("rider_active",JSON.stringify(ACT));else localStorage.removeItem("rider_active")}catch(x){}}
-function drop(ids,msg){ACT=ACT.filter(function(i){return ids.indexOf(i)<0});ids.forEach(function(i){delete SEL[i]});saveAct();
+function drop(ids,msg){ACT=ACT.filter(function(i){return ids.indexOf(i)<0});ids.forEach(function(i){delete SEL[i];delete HAD[i];delete SELF[i]});saveAct();
  if(!ACT.length){stopSharing(msg,false)}else{syncDest();render();if(msg)toast(msg)}}
 
 function listen(){if(watching)return;watching=true;
@@ -156,7 +156,9 @@ function listen(){if(watching)return;watching=true;
   var gone=ACT.filter(function(id){return!ORD.some(function(o){return o.id===id})});if(gone.length)drop(gone,"A delivery is no longer out for delivery.");
   render()},function(){toast("Could not load deliveries. Ask the shop to check the Firestore rules.")});
  db.collection("tracking").onSnapshot(function(q){TRK={};q.forEach(function(s){TRK[s.id]=s.data()});gotT=true;
-  if(ACT.length&&lastSent&&!sending&&Date.now()-lastSent>GAP*3){var rel=ACT.filter(function(id){return!TRK[id]});if(rel.length)drop(rel,"The shop released a delivery.")}
+  ACT.forEach(function(id){if(TRK[id]&&TRK[id].riderUid===me.uid)HAD[id]=true});
+  var rel=ACT.filter(function(id){return HAD[id]&&!SELF[id]&&(!TRK[id]||TRK[id].riderUid!==me.uid)});
+  if(rel.length){rel.forEach(function(id){delete HAD[id]});drop(rel,"The shop released a delivery from you.")}
   render()},function(){});
 }
 function ago(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+"s ago":Math.round(s/60)+" min ago"}
@@ -225,11 +227,11 @@ function paintGps(){var a=$("gA"),s=$("gS"),lv=$("lv"),t=$("lvt");if(!a||!s)retu
  a.textContent=lastPos?"\u00B1"+Math.round(lastPos.coords.accuracy||0)+" m":"Searching...";s.textContent=lastSent?ago(lastSent):"Waiting...";
  var bad=gpsErr||(lastSent&&Date.now()-lastSent>GAP*5);lv.classList.toggle("warn",!!bad);t.textContent=bad?(gpsErr||"Waiting for signal. Retrying..."):"Sharing your live location"}
 function lock(){if(!("wakeLock" in navigator))return;navigator.wakeLock.request("screen").then(function(w){wake=w;w.addEventListener("release",function(){wake=null})}).catch(function(){})}
-function stopSharing(msg,del){var ids=ACT.slice();killRMap();stopTimers();if(wake){try{wake.release()}catch(x){}wake=null}ACT=[];SEL={};lastPos=null;lastSent=0;saveAct();
+function stopSharing(msg,del){var ids=ACT.slice();killRMap();stopTimers();if(wake){try{wake.release()}catch(x){}wake=null}ACT=[];SEL={};HAD={};SELF={};lastPos=null;lastSent=0;saveAct();
  var p=del?Promise.all(ids.map(function(id){return db.collection("tracking").doc(id).delete().catch(function(){})})):Promise.resolve();render();if(msg)toast(msg);return p}
 function markDelivered(o){if(!confirm("Mark order "+o.id+" as delivered? Make sure you received the payment."))return;
- var b=db.batch();b.update(db.collection("orders").doc(o.id),{status:"delivered"});b.update(db.collection("status").doc(o.id),{status:"delivered"});b.delete(db.collection("tracking").doc(o.id));
- b.commit().then(function(){var left=ACT.filter(function(i){return i!==o.id});if(!left.length){stopSharing("All deliveries done. Great job!",false)}else{ACT=left;saveAct();syncDest();render();toast("Delivered. "+left.length+" left.")}}).catch(function(){toast("Could not mark delivered. Check your connection and try again.")})}
+ SELF[o.id]=true;var b=db.batch();b.update(db.collection("orders").doc(o.id),{status:"delivered"});b.update(db.collection("status").doc(o.id),{status:"delivered"});b.delete(db.collection("tracking").doc(o.id));
+ b.commit().then(function(){var left=ACT.filter(function(i){return i!==o.id});if(!left.length){stopSharing("All deliveries done. Great job!",false)}else{ACT=left;saveAct();syncDest();render();toast("Delivered. "+left.length+" left.")}}).catch(function(){delete SELF[o.id];toast("Could not mark delivered. Check your connection and try again.")})}
 
 /* rider's own map: live GPS position + numbered customer pins */
 var RM=null,mapEl=null,rmk=null,rcir=null,destMk={},follow=true,RMinit=null,firstFit=true;
@@ -293,7 +295,8 @@ $("instOk").onclick=function(){help.classList.remove("show")};
 if(!/^https?:$/.test(location.protocol)||!("serviceWorker"in navigator))return;
 var pending=false,t=null,base=null,loadedOffline=navigator.onLine===false,lastIn=0,hadCtl=!!navigator.serviceWorker.controller;
 document.addEventListener("input",function(){lastIn=Date.now()},true);
-function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;return Date.now()-lastIn<120000}
+function dirty(){var els=document.querySelectorAll("form input,form textarea,form select");for(var i=0;i<els.length;i++){var e=els[i],t=e.type;if(t==="hidden"||t==="submit"||t==="button"||t==="password")continue;if(t==="checkbox"||t==="radio"){if(e.checked!==e.defaultChecked)return true}else if(t==="file"){if(e.files&&e.files.length)return true}else if(e.tagName==="SELECT"){if(e.selectedIndex>=0&&e.options[e.selectedIndex]&&!e.options[e.selectedIndex].defaultSelected)return true}else if(e.value!==e.defaultValue)return true}return false}
+function busy(){var d=document.querySelector("dialog[open]");if(d)return true;if(typeof ACT!=="undefined"&&ACT.length)return true;var v=document.getElementById("vid");if(v&&!v.hidden)return true;if(dirty())return true;return Date.now()-lastIn<120000}
 function go(){pending=true;try{sessionStorage.setItem("mls_upd","1")}catch(x){}try{reload()}catch(x){}}
 function reload(){clearTimeout(t);if(!pending)return;if(busy()){t=setTimeout(reload,15000)}else location.reload()}
 navigator.serviceWorker.addEventListener("controllerchange",function(){if(hadCtl)go();hadCtl=true});
