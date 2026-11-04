@@ -259,6 +259,15 @@ html.cust.trk main>#track{display:block!important}
 html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!important}
 #tback{display:none;margin-bottom:10px}html.cust #tback{display:inline-block}
 </style>
+<style>
+/* step-by-step order form */
+.stp{grid-column:1/-1;display:grid;gap:14px;grid-template-columns:1fr 1fr}.stp[hidden]{display:none!important}
+.wz{grid-column:1/-1;display:flex;gap:6px}.wz span{flex:1;height:6px;border-radius:99px;background:var(--line);transition:background .3s}.wz span.on{background:var(--brand)}
+.wt{grid-column:1/-1;margin:0;font-size:20px;font-weight:800;display:flex;flex-direction:column;gap:2px}.wt small{font-size:13px;color:var(--mute);font-weight:600}
+.wn{grid-column:1/-1;display:flex;justify-content:space-between;gap:10px}.wn .btn{padding:11px 26px}
+.sum{background:var(--soft);border-radius:14px;padding:6px 16px}.sum div{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}.sum div:last-child{border:0}.sum span{color:var(--mute)}.sum b{text-align:right;word-break:break-word}
+@media(max-width:720px){.stp{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -803,6 +812,46 @@ window.mlsOpenAuth=function(m){openAuth(m)};
 paintBtn();
 if(location.hash==="#account"){window.addEventListener("load",function(){setTimeout(function(){$("acBtn").click()},1000)})}
 window.addEventListener("load",function(){setTimeout(function(){loadAuth().catch(function(){var t=$("ogS");if(t)t.textContent="Could not check your account. Please check your connection."})},500)});
+})();
+</script>
+<script>
+/* step-by-step "Place your order" */
+(function(){
+var f=document.getElementById("f");if(!f)return;
+var $=function(i){return document.getElementById(i)};
+function top(e){while(e&&e.parentNode!==f)e=e.parentNode;return e}
+var T=["Your details","Your order","Delivery & payment","Verify","Review & send"],ids=[["n","p","a","pinbox"],["s","q","t","br"],["ar","sl","m"],["idf"],["tot"]],seen=[],cur=0;
+var steps=T.map(function(){var d=document.createElement("div");d.className="stp";d.hidden=true;return d});
+function put(i,el){var t=top(el);if(t&&seen.indexOf(t)<0){seen.push(t);steps[i].appendChild(t)}}
+ids.forEach(function(g,i){g.forEach(function(id){put(i,$(id))})});
+put(4,f.querySelector("button[type=submit]"));
+var sm=document.createElement("div");sm.className="sum full";steps[4].insertBefore(sm,steps[4].firstChild);
+var hd=document.createElement("div");hd.className="wz";var bars=T.map(function(){var b=document.createElement("span");hd.appendChild(b);return b});
+var tt=document.createElement("p");tt.className="wt";
+var nav=document.createElement("div");nav.className="wn";
+var bk=document.createElement("button");bk.type="button";bk.className="btn ghost";bk.textContent="Back";
+var nx=document.createElement("button");nx.type="button";nx.className="btn";nx.textContent="Next";
+nav.append(bk,nx);f.append(hd,tt);steps.forEach(function(s){f.append(s)});f.append(nav);
+function val(id){var e=$(id);return e?e.value:""}
+function opt(id){var e=$(id);return e&&e.selectedIndex>=0?e.options[e.selectedIndex].text:""}
+function summary(){sm.textContent="";[["Name",val("n")],["Mobile",val("p")],["Address",val("a")],["Tank",opt("s").split(" – ")[0]+" x "+val("q")],["Order type",opt("t")],["Brand",opt("br")],["Delivery area",opt("ar")],["Delivery time",opt("sl")],["Payment",opt("m")],["ID and selfie","Ready"]].forEach(function(r){var d=document.createElement("div"),a=document.createElement("span"),b=document.createElement("b");a.textContent=r[0];b.textContent=r[1];d.append(a,b);sm.append(d)})}
+function valid(i){
+ if(i===3){if(typeof idBlob==="undefined"||!idBlob){alert("Please upload your valid ID.");return false}if(typeof selfBlob==="undefined"||!selfBlob){alert("Please take a live selfie with the camera.");return false}}
+ var els=[].slice.call(steps[i].querySelectorAll("input,select,textarea"));
+ for(var k=0;k<els.length;k++){var e=els[k];if(e.type==="file")continue;if(!e.checkValidity()){e.reportValidity();return false}}
+ return true}
+function show(i,scroll){
+ if(cur===3&&i!==3&&typeof stream!=="undefined"&&stream){stopCam();$("tk").hidden=true;$("co").hidden=false}
+ cur=i;steps.forEach(function(s,j){s.hidden=j!==i});bars.forEach(function(b,j){b.className=j<=i?"on":""});
+ tt.textContent="";var b=document.createElement("b");b.textContent=T[i];var s=document.createElement("small");s.textContent="Step "+(i+1)+" of "+T.length;tt.append(b,s);
+ bk.style.visibility=i===0?"hidden":"visible";nx.hidden=i===T.length-1;
+ if(i===T.length-1)summary();
+ if(i===0)setTimeout(function(){window.dispatchEvent(new Event("resize"))},80);
+ if(scroll){var o=$("order");if(o)o.scrollIntoView({behavior:"smooth",block:"start"})}}
+nx.onclick=function(){if(valid(cur))show(cur+1,true)};
+bk.onclick=function(){if(cur>0)show(cur-1,true)};
+f.addEventListener("keydown",function(e){if(e.key==="Enter"&&cur<T.length-1&&e.target.tagName==="INPUT"){e.preventDefault();nx.click()}});
+show(0,false);
 })();
 </script>
 </body>
