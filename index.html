@@ -251,6 +251,14 @@ form[hidden]{display:none!important}
 .ogate .ogb .btn{min-width:150px;padding:12px 20px}
 .ogate .ogs{margin:12px 0 0;font-size:13px}
 </style>
+<script>try{if(localStorage.getItem("mls_acct")==="1")document.documentElement.classList.add("cust")}catch(x){}</script>
+<style>
+/* customer interface: after login show only "Place your order" */
+html.cust main>*:not(#order){display:none!important}
+html.cust.trk main>#track{display:block!important}
+html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!important}
+#tback{display:none;margin-bottom:10px}html.cust #tback{display:inline-block}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -347,7 +355,7 @@ form[hidden]{display:none!important}
 <details><summary>Do I need to give an empty tank?</summary><p>For a refill, yes. Our rider swaps your empty tank for a full one.</p></details>
 <details><summary>What are your hours?</summary><p>Open daily, 7:00 AM – 8:00 PM.</p></details>
 </section>
-<section id="track"><h2>Track your order</h2><p class="sub">Enter the order number you received.</p>
+<section id="track"><button type="button" class="btn ghost" id="tback">&larr; Back to order form</button><h2>Track your order</h2><p class="sub">Enter the order number you received.</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ti" placeholder="LPG-XXXXXX" style="max-width:240px"><button class="btn" id="tb" type="button" style="padding:10px 20px">Check</button></div><p id="tres" style="font-weight:600"></p>
 <div id="tlive" hidden><div class="tsteps" id="tst"></div><p class="tmsg" id="tmsg"></p><p id="twait" class="note" hidden>Your rider will appear on the map as soon as they start sharing their location.</p></div>
 <div id="tmapw"><div id="tmap" role="img" aria-label="Map of your delivery"></div><div class="tinfo" id="tinfo"></div><p class="twarn" id="tstale" hidden></p></div></section>
@@ -468,9 +476,14 @@ if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)){window.addE
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;show()});
 window.addEventListener("appinstalled",function(){dp=null;hide()});
 if(!standalone){window.addEventListener("load",function(){setTimeout(show,600)})}
+function showHelp(){var st=ios?["Tap the <b>Share</b> button in Safari.","Choose <b>Add to Home Screen</b>.","Tap <b>Add</b>."]:["Open the browser menu (the three dots at the top or bottom).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Tap <b>Install</b> to confirm."],l=$("instSteps");if(l)l.innerHTML=st.map(function(x){return "<li>"+x+"</li>"}).join("");help.classList.add("show")}
 $("instBtn").onclick=function(){
- if(dp){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
- else{var st=ios?["Tap the <b>Share</b> button in Safari.","Choose <b>Add to Home Screen</b>.","Tap <b>Add</b>."]:["Open the browser menu (the three dots at the top or bottom).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Tap <b>Install</b> to confirm."];$("instSteps").innerHTML=st.map(function(x){return "<li>"+x+"</li>"}).join("");help.classList.add("show")}
+ function go(){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
+ if(dp){go();return}
+ if(ios){showHelp();return}
+ var t=setTimeout(function(){window.removeEventListener("beforeinstallprompt",w);showHelp()},1500);
+ function w(e){e.preventDefault();dp=e;clearTimeout(t);go()}
+ window.addEventListener("beforeinstallprompt",w,{once:true});
 };
 $("instX").onclick=function(){try{sessionStorage.setItem("mls_inst","1")}catch(x){}hide()};
 $("instOk").onclick=function(){help.classList.remove("show")};
@@ -621,7 +634,7 @@ function start(id,quiet){id=String(id||"").trim().toUpperCase();if(!id)return;st
     if(dest)ensureMap().then(paintInfo);else paintInfo()}
   },function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})
  }).catch(function(){if(!quiet)o.textContent="Tracking is not available right now. Please call us."})}
-window.mlsTrack=function(id){var t=$("ti");t.value=id;start(id)};
+window.mlsTrack=function(id){document.documentElement.classList.add("trk");var t=$("ti");t.value=id;start(id)};var tbk=$("tback");if(tbk)tbk.onclick=function(){document.documentElement.classList.remove("trk");var o=$("order");if(o)o.scrollIntoView({behavior:"smooth"})};
 $("tb").onclick=function(){start($("ti").value)};
 $("ti").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();start(this.value)}};
 paintInfo();
@@ -678,7 +691,7 @@ function db(){return firebase.firestore()}
 function setVal(id,v){var e=$(id);if(e&&!e.value&&v)e.value=v}
 function prefill(){if(!prof)return;setVal("n",prof.name);setVal("p",prof.phone);setVal("a",prof.address)}
 function gate(on){var f=$("f"),g=$("ogate");if(f)f.hidden=!on;if(g)g.hidden=on;var t=$("ogS");if(t)t.textContent=""}
-function onUser(u){user=u;window.mlsUser=u;flag(!!u);paintBtn();gate(!!u);
+function onUser(u){user=u;window.mlsUser=u;document.documentElement.classList.toggle("cust",!!u);if(!u)document.documentElement.classList.remove("trk");flag(!!u);paintBtn();gate(!!u);
  if(unsub){unsub();unsub=null}
  if(!u){prof=null;HIST=[];renderAcct();return}
  db().collection("users").doc(u.uid).get().then(function(s){prof=s.exists?s.data():null;paintBtn();prefill();renderAcct()}).catch(function(){});
