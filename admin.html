@@ -343,9 +343,14 @@ if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)){window.addE
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;show()});
 window.addEventListener("appinstalled",function(){dp=null;hide()});
 if(!standalone){window.addEventListener("load",function(){setTimeout(show,600)})}
+function showHelp(){var st=ios?["Tap the <b>Share</b> button in Safari.","Choose <b>Add to Home Screen</b>.","Tap <b>Add</b>."]:["Open the browser menu (the three dots at the top or bottom).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Tap <b>Install</b> to confirm."],l=$("instSteps");if(l)l.innerHTML=st.map(function(x){return "<li>"+x+"</li>"}).join("");help.classList.add("show")}
 $("instBtn").onclick=function(){
- if(dp){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
- else{var st=ios?["Tap the <b>Share</b> button in Safari.","Choose <b>Add to Home Screen</b>.","Tap <b>Add</b>."]:["Open the browser menu (the three dots at the top or bottom).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Tap <b>Install</b> to confirm."];$("instSteps").innerHTML=st.map(function(x){return "<li>"+x+"</li>"}).join("");help.classList.add("show")}
+ function go(){dp.prompt();dp.userChoice.then(function(c){dp=null;if(c.outcome==="accepted")hide();else box.classList.remove("show")})}
+ if(dp){go();return}
+ if(ios){showHelp();return}
+ var t=setTimeout(function(){window.removeEventListener("beforeinstallprompt",w);showHelp()},1500);
+ function w(e){e.preventDefault();dp=e;clearTimeout(t);go()}
+ window.addEventListener("beforeinstallprompt",w,{once:true});
 };
 $("instX").onclick=function(){try{sessionStorage.setItem("mls_inst","1")}catch(x){}hide()};
 $("instOk").onclick=function(){help.classList.remove("show")};
