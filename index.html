@@ -254,10 +254,11 @@ form[hidden]{display:none!important}
 <script>try{if(localStorage.getItem("mls_acct")==="1")document.documentElement.classList.add("cust")}catch(x){}</script>
 <style>
 /* customer interface: after login show only "Place your order" */
-html.cust main>*:not(#order){display:none!important}
+html.cust main>*:not(#order):not(#ctabs){display:none!important}
 html.cust.trk main>#track{display:block!important}
+html.cust.trk main>#order{display:none!important}
 html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!important}
-#tback{display:none;margin-bottom:10px}html.cust #tback{display:inline-block}
+#tback{display:none!important}
 </style>
 <style>
 /* step-by-step order form */
@@ -269,6 +270,14 @@ html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!i
 @media(max-width:720px){.stp{grid-template-columns:1fr}}
 </style>
 <style>@media(max-width:720px){#splash .logo{display:none}}</style>
+<style>
+#ctabs{display:none;gap:6px;background:var(--soft);border-radius:999px;padding:5px;margin:14px 0 4px}
+html.cust #ctabs{display:flex}
+#ctabs button{flex:1;border:0;border-radius:999px;padding:11px 8px;font:700 15px system-ui,sans-serif;background:transparent;color:var(--ink);cursor:pointer}
+#ctabs button.on{background:var(--brand);color:#fff}
+.ma{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
+.ma small{color:var(--mute)}
+</style>
 </head>
 <body>
 <div id="splash"><div class="logo brand"><span>Mark LPG Services</span></div>
@@ -287,6 +296,7 @@ html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!i
 <p>To ask us to delete your data, call us anytime. We handle personal information in line with the Data Privacy Act of 2012 (RA 10173).</p>
 <button class="btn" id="pc" type="button">Close</button></dialog>
 <main class="wrap">
+<div id="ctabs"><button type="button" data-t="order" class="on">Place order</button><button type="button" data-t="track">Track order</button></div>
 <div class="hero">
 <div>
 <h1>LPG tanks delivered to your door. Fast &amp; safe.</h1>
@@ -365,7 +375,7 @@ html.cust footer,html.cust nav a.h,html.cust nav a[href="#order"]{display:none!i
 <details><summary>Do I need to give an empty tank?</summary><p>For a refill, yes. Our rider swaps your empty tank for a full one.</p></details>
 <details><summary>What are your hours?</summary><p>Open daily, 7:00 AM – 8:00 PM.</p></details>
 </section>
-<section id="track"><button type="button" class="btn ghost" id="tback">&larr; Back to order form</button><h2>Track your order</h2><p class="sub">Enter the order number you received.</p>
+<section id="track"><button type="button" class="btn ghost" id="tback">&larr; Back to order form</button><h2>Track your order</h2><div id="myact"></div><p class="sub">Enter the order number you received.</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="ti" placeholder="LPG-XXXXXX" style="max-width:240px"><button class="btn" id="tb" type="button" style="padding:10px 20px">Check</button></div><p id="tres" style="font-weight:600"></p>
 <div id="tlive" hidden><div class="tsteps" id="tst"></div><p class="tmsg" id="tmsg"></p><p id="twait" class="note" hidden>Your rider will appear on the map as soon as they start sharing their location.</p></div>
 <div id="tmapw"><div id="tmap" role="img" aria-label="Map of your delivery"></div><div class="tinfo" id="tinfo"></div><p class="twarn" id="tstale" hidden></p></div></section>
@@ -850,6 +860,29 @@ nx.onclick=function(){if(valid(cur))show(cur+1,true)};
 bk.onclick=function(){if(cur>0)show(cur-1,true)};
 f.addEventListener("keydown",function(e){if(e.key==="Enter"&&cur<T.length-1&&e.target.tagName==="INPUT"){e.preventDefault();nx.click()}});
 show(0,false);
+})();
+</script>
+<script>
+/* customer tabs: Place order / Track order */
+(function(){
+var R=document.documentElement,$=function(i){return document.getElementById(i)},tabs=$("ctabs");if(!tabs)return;
+var B=[].slice.call(tabs.querySelectorAll("button")),LB={"new":"Received","confirmed":"Confirmed","out for delivery":"Out for delivery"};
+function sync(){var t=R.classList.contains("trk")?"track":"order";B.forEach(function(b){b.classList.toggle("on",b.getAttribute("data-t")===t)})}
+function loadAct(){var box=$("myact"),u=window.mlsUser;if(!box||!u||typeof fb!=="function")return;
+ box.textContent="Loading your orders...";
+ fb().then(function(f){return f.firestore().collection("orders").where("uid","==",u.uid).get()}).then(function(q){
+  var L=[];q.forEach(function(s){var d=s.data();if(LB[d.status||"new"])L.push({id:s.id,d:d})});
+  L.sort(function(a,b){return(b.d.createdAt?b.d.createdAt.toMillis():0)-(a.d.createdAt?a.d.createdAt.toMillis():0)});
+  box.textContent="";var h=document.createElement("h3");h.style.margin="6px 0";h.textContent="Your active orders";box.append(h);
+  if(!L.length){var n=document.createElement("p");n.className="sub";n.textContent="No active orders right now. Place an order and track it here.";box.append(n);return}
+  L.slice(0,5).forEach(function(o){var r=document.createElement("div"),l=document.createElement("div"),a=document.createElement("b"),m=document.createElement("small"),b=document.createElement("button");
+   r.className="ma";a.textContent=o.id;m.textContent=(o.d.tank||"")+" x"+(o.d.qty||1)+" · "+LB[o.d.status||"new"];l.append(a,document.createElement("br"),m);
+   b.type="button";b.className="btn";b.style.padding="8px 16px";b.textContent="Track";b.onclick=function(){if(window.mlsTrack)window.mlsTrack(o.id)};r.append(l,b);box.append(r)});
+  if(L.length===1&&!$("ti").value&&window.mlsTrack)window.mlsTrack(L[0].id);
+ }).catch(function(){box.textContent=""})}
+B.forEach(function(b){b.onclick=function(){var t=b.getAttribute("data-t");R.classList.toggle("trk",t==="track");sync();if(t==="track")loadAct();tabs.scrollIntoView({behavior:"smooth",block:"start"})}});
+new MutationObserver(function(){sync();if(R.classList.contains("trk")&&!$("myact").firstChild)loadAct()}).observe(R,{attributes:true,attributeFilter:["class"]});
+sync();
 })();
 </script>
 </body>
