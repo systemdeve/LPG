@@ -184,7 +184,7 @@ img,video{max-width:100%}
  </div></header>
  <div id="nb" class="nb" hidden>New order received!</div>
  <div class="wrap">
-  <nav class="tabs"><button id="tO" class="on">Orders<span class="cnt" id="cO" hidden></span></button><button id="tL">Live map<span class="cnt" id="cL" hidden></span></button><button id="tR">Reviews<span class="cnt" id="cR" hidden></span></button><button id="tS">Prices &amp; stock</button></nav>
+  <nav class="tabs"><button id="tO" class="on">Orders<span class="cnt" id="cO" hidden></span></button><button id="tL">Live map<span class="cnt" id="cL" hidden></span></button><button id="tR">Reviews<span class="cnt" id="cR" hidden></span></button><button id="tS">Prices &amp; stock</button><button id="tP">Reports</button></nav>
   <main>
    <section id="pO"><div class="stats" id="stats"></div><div class="bar"><input id="q" type="search" placeholder="Search name, phone or order ID"><div class="chips" id="chips"></div></div><div id="ol"></div></section>
    <section id="rl" hidden></section>
@@ -192,6 +192,7 @@ img,video{max-width:100%}
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div><label for="rn">Rider name</label><input id="rn" type="text" autocomplete="off" placeholder="Juan Dela Cruz"></div><div><label for="re">Email</label><input id="re" type="email" autocomplete="off" placeholder="juan@email.com"></div><div><label for="rp">Password (8+ characters)</label><input id="rp" type="text" autocomplete="off"></div></div>
 <div class="ra" style="margin-top:12px"><button type="button" class="btn sm" id="rcb">Create rider</button><a class="btn sm g" href="rider.html" target="_blank" rel="noopener" style="text-decoration:none">Open rider app</a></div><div id="rmsg" class="ot" role="status" style="margin-top:8px"></div><div id="rlist" style="margin-top:12px"></div></div></section>
    <section id="sl" hidden></section>
+   <section id="rp" hidden></section>
   </main>
  </div>
 </div>
@@ -225,10 +226,10 @@ function start(){firebase.initializeApp(FIREBASE_CONFIG);au=firebase.auth();db=f
  $("lf").onsubmit=function(e){e.preventDefault();var b=$("lbtn");b.disabled=true;b.textContent="Signing in...";$("le").textContent="";
   au.signInWithEmailAndPassword($("em").value.trim(),$("pw").value).catch(function(){$("le").textContent="Wrong email or password.";$("pw").value="";$("pw").focus()}).then(function(){b.disabled=false;b.textContent="Sign in"})};
  $("so").onclick=function(){if(!confirm("Are you sure you want to sign out?"))return;au.signOut().then(function(){location.replace("index.html")}).catch(function(){toast("Could not sign out. Try again.")})};
- $("tO").onclick=function(){tab("pO")};$("tL").onclick=function(){tab("lv")};$("rcb").onclick=createRider;$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};
+ $("tO").onclick=function(){tab("pO")};$("tL").onclick=function(){tab("lv")};$("rcb").onclick=createRider;$("tR").onclick=function(){tab("rl")};$("tS").onclick=function(){tab("sl");buildSet()};$("tP").onclick=function(){tab("rp")};
  $("q").oninput=renderOrders;
 }
-function tab(x){["pO","lv","rl","sl"].forEach(function(i){$(i).hidden=i!==x});[["tO","pO"],["tL","lv"],["tR","rl"],["tS","sl"]].forEach(function(p){$(p[0]).classList.toggle("on",p[1]===x)});window.scrollTo({top:0});if(x==="lv")liveOpen()}
+function tab(x){["pO","lv","rl","sl","rp"].forEach(function(i){$(i).hidden=i!==x});[["tO","pO"],["tL","lv"],["tR","rl"],["tS","sl"],["tP","rp"]].forEach(function(p){$(p[0]).classList.toggle("on",p[1]===x)});window.scrollTo({top:0});if(x==="lv")liveOpen();if(x==="rp")buildReport()}
 
 function setStatus(o,s){var j=[db.collection("orders").doc(o).update({status:s}),db.collection("status").doc(o).set({status:s},{merge:true})];if(s==="delivered"||s==="cancelled")j.push(db.collection("tracking").doc(o).delete().catch(function(){}));return Promise.all(j).then(function(){toast("Order "+o+" marked "+s)}).catch(function(){toast("Could not update status")})}
 function delPhotos(id){return db.collection("photos").doc(id).delete().then(function(){return db.collection("orders").doc(id).update({hasPhotos:false,photosDeleted:true})})}
@@ -265,9 +266,13 @@ function renderOrders(){renderStats();var L=$("ol"),q=($("q").value||"").toLower
    kv("Delivery",((d.area||"")+" \u00B7 "+(d.slot||"")).replace(/^ \u00B7 | \u00B7 $/g,"")||"-"),
    kv("Payment",d.payment||"-"),kv("Total",null,false,E("span",d.total||"-","tot")));
   c.append(g);
+  if(d.status==="delivered"||d.collected!=null){var g2=E("div",null,"kv");g2.append(kv("Delivered by",d.deliveredByName||"-"),kv("Cash collected",money(d.collected)?peso(money(d.collected)):"-"));if(money(d.collected)>0)g2.append(kv("Cash handed in",d.handedIn?"Yes":"No"));c.append(g2)}
+  if(s==="new"||s==="confirmed"||s==="out for delivery"){var as=E("select"),aw=E("div",null,"full");as.style.cssText="width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px;margin-top:4px";as.append(new Option("Any rider (not assigned)",""));(window.RID||[]).forEach(function(x){as.append(new Option(x.name,x.id))});as.value=d.assignedUid||"";
+   as.onchange=function(){var nm=as.options[as.selectedIndex].text;db.collection("orders").doc(o.id).update(as.value?{assignedUid:as.value,assignedName:nm}:{assignedUid:"",assignedName:""}).then(function(){toast(as.value?"Assigned to "+nm:"Assignment removed")}).catch(function(){toast("Could not assign")})};aw.append(E("small","Assign rider"),as);c.append(aw)}
   var r=E("div",null,"ra");
   ST.forEach(function(x){r.append(B(x,function(){setStatus(o.id,x)},s!==x?"g":""))});
   if(d.hasPhotos){r.append(B("View ID + selfie",function(){show(o.id,box)},"g"));r.append(B("Delete photos",function(){if(confirm("Delete photos for "+o.id+"?"))delPhotos(o.id).then(function(){toast("Photos deleted")})},"d"))}
+  if(d.hasPod)r.append(B("View proof",function(){showPod(o.id,box)},"g"));r.append(B("Print",function(){printSlip(o)},"g"));
   c.append(r,box);L.append(c)})}
 
 /* settings */
@@ -315,8 +320,45 @@ function createRider(){var n=$("rn").value.trim(),e=$("re").value.trim().toLower
  a2.createUserWithEmailAndPassword(e,p).then(function(c){var uid=c.user.uid;
   return db.collection("riders").doc(uid).set({name:n,email:e,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){return a2.signOut()}).then(function(){$("rn").value="";$("re").value="";$("rp").value="";rmsg("Rider created. They can sign in at rider.html now.",0);toast("Rider created")})})
  .catch(function(x){var c=x&&x.code||"";rmsg(c==="auth/email-already-in-use"?"That email already has an account. Use a different email for the rider.":c==="auth/weak-password"?"Password is too weak.":c==="permission-denied"||/permission/i.test(String(x&&x.message))?"The account was made but saving the rider failed. Check your Firestore rules.":"Could not create the rider. Check the details and try again.",1)}).then(function(){b.disabled=false})}
-function drawRiders(q){var L=$("rlist");L.textContent="";if(q.empty){L.append(E("p","No riders yet.","ot"));return}
+function drawRiders(q){window.RID=[];q.forEach(function(s){window.RID.push({id:s.id,name:s.data().name||"Rider"})});if(typeof ORD!=="undefined"&&ORD.length)renderOrders();var L=$("rlist");L.textContent="";if(q.empty){L.append(E("p","No riders yet.","ot"));return}
  q.forEach(function(s){var d=s.data(),r=E("div",null,"lvc"),l=E("div");l.append(E("div",d.name||"Rider","oid"),E("div",d.email||"","ot"));r.append(l,B("Remove access",function(){if(confirm("Remove "+(d.name||"this rider")+"? They will no longer be able to use the rider app."))db.collection("riders").doc(s.id).delete().then(function(){toast("Rider removed")}).catch(function(){toast("Could not remove")})},"d"));r.style.cssText="padding:10px 0;border-top:1px solid var(--line)";L.append(r)})}
+/* ---- proof, print, reports, cash, stock ---- */
+var RPR="today";
+function tkey(t){var n=parseFloat(t);return isFinite(n)?String(n):""}
+function cc(v){v=String(v==null?"":v);return/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function dl(name,text){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+text],{type:"text/csv"}));a.download=name;document.body.append(a);a.click();a.remove()}
+function showPod(id,box){box.textContent="";db.collection("pod").doc(id).get().then(function(s){if(!s.exists){box.append(E("small","No proof photo."));return}var i=new Image();i.src=s.data().img;i.style.cssText="max-width:100%;border-radius:12px;margin-top:8px";box.append(i)}).catch(function(){box.append(E("small","Could not load the photo."))})}
+function printSlip(o){var d=o.d,w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}
+ function t(x){return String(x==null?"":x).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+ var rows=[["Customer",d.name],["Phone",d.phone],["Address",d.address],["Order",(d.tank||"")+" x"+(d.qty||1)+" "+(d.brand||"")],["Type",d.type],["Delivery",(d.area||"")+" "+(d.slot||"")],["Payment",d.payment]].map(function(r){return"<p><small>"+t(r[0])+"</small><br>"+t(r[1])+"</p>"}).join("");
+ w.document.write('<title>'+t(o.id)+'</title><body style="font:15px system-ui;max-width:380px;margin:20px"><h2 style="margin:0">Mark LPG Services</h2><b>'+t(o.id)+'</b><hr>'+rows+'<hr><h3>Total: '+t(d.total)+'</h3><script>onload=function(){print()}<\/script></body>');w.document.close()}
+function buildReport(){var L=$("rp");L.textContent="Loading...";var n=new Date(),st=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+ if(RPR==="7")st=new Date(st.getTime()-6*864e5);else if(RPR==="month")st=new Date(n.getFullYear(),n.getMonth(),1);else if(RPR==="all")st=new Date(2020,0,1);
+ var T=firebase.firestore.Timestamp;
+ Promise.all([db.collection("orders").where("createdAt",">=",T.fromDate(st)).get(),db.collection("adminData").doc("stock").get()]).then(function(r){
+  var O=[];r[0].forEach(function(s){O.push({id:s.id,d:s.data()})});var sk=r[1].exists?r[1].data():null;
+  if(!sk||!sk.since)return drawReport(O,sk,{});
+  return db.collection("orders").where("createdAt",">=",sk.since).get().then(function(q){var u={};q.forEach(function(s){var d=s.data();if(d.status==="delivered"){var k=tkey(d.tank);u[k]=(u[k]||0)+(Number(d.qty)||1)}});drawReport(O,sk,u)})
+ }).catch(function(){L.textContent="Could not load the report."})}
+function card(t){var c=E("div",null,"c sec");c.append(E("h3",t));return c}
+function line(c,a,b){var d=E("div",null,"ot");d.style.cssText="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)";d.append(E("span",a),E("b",b));c.append(d)}
+function drawReport(O,sk,used){var L=$("rp");L.textContent="";
+ var bar=E("div",null,"ra");bar.style.marginBottom="12px";[["today","Today"],["7","Last 7 days"],["month","This month"],["all","All time"]].forEach(function(x){bar.append(B(x[1],function(){RPR=x[0];buildReport()},RPR===x[0]?"":"g"))});L.append(bar);
+ var del=O.filter(function(o){return o.d.status==="delivered"}),can=O.filter(function(o){return o.d.status==="cancelled"}),rev=0,bs={},bb={},rd={};
+ del.forEach(function(o){var d=o.d,q=Number(d.qty)||1,tk=d.tank||"?",b=d.brand||"Any brand";rev+=money(d.total);bs[tk]=(bs[tk]||0)+q;bb[b]=(bb[b]||0)+q;
+  if(d.deliveredBy){var x=rd[d.deliveredBy]=rd[d.deliveredBy]||{n:d.deliveredByName||"Rider",c:0,col:0,un:0,ids:[]},cl=money(d.collected);x.c++;x.col+=cl;if(cl>0&&!d.handedIn){x.un+=cl;x.ids.push(o.id)}}});
+ var c=card("Sales");line(c,"Orders placed",String(O.length));line(c,"Delivered",String(del.length));line(c,"Cancelled",String(can.length));line(c,"Revenue (delivered)",peso(rev));L.append(c);
+ c=card("Tanks delivered");var ks=Object.keys(bs);if(!ks.length)line(c,"No deliveries yet","-");ks.forEach(function(k){line(c,k,String(bs[k]))});Object.keys(bb).forEach(function(k){line(c,k+" (brand)",String(bb[k]))});L.append(c);
+ c=card("Riders and cash");var rs=Object.keys(rd);if(!rs.length)line(c,"No rider deliveries yet","-");
+ rs.forEach(function(id){var x=rd[id];line(c,x.n+" ("+x.c+" deliveries)","Collected "+peso(x.col));if(x.un>0){var w=E("div",null,"ra");w.style.margin="6px 0";w.append(B("Mark "+peso(x.un)+" handed in",function(){if(!confirm("Confirm "+x.n+" handed in "+peso(x.un)+"?"))return;var b=db.batch();x.ids.forEach(function(i){b.update(db.collection("orders").doc(i),{handedIn:true,handedAt:firebase.firestore.FieldValue.serverTimestamp()})});b.commit().then(function(){toast("Marked as handed in");buildReport()}).catch(function(){toast("Could not update")})}));c.append(w)}});L.append(c);
+ c=card("Stock (estimate)");c.append(E("p","Type the tanks you have now. After you save, the estimate subtracts every delivered order.","ot"));
+ var inp={},cnt=(sk&&sk.counts)||{},low=sk&&sk.low!=null?sk.low:5;
+ SZ.forEach(function(k){var rem=(Number(cnt[k])||0)-(used[k]||0),w=E("div",null,"ot"),i=E("input"),s=E("b",sk?"~"+rem+" left"+(rem<=low?" - LOW":""):"");w.style.cssText="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)";i.type="number";i.min=0;i.value=cnt[k]||0;i.style.width="90px";inp[k]=i;if(sk&&rem<=low)s.style.color="var(--bad)";w.append(E("span",k+" kg"),i,s);c.append(w)});
+ var li=E("input"),lw=E("div",null,"ot");li.type="number";li.min=0;li.value=low;li.style.width="90px";lw.style.cssText="display:flex;align-items:center;gap:8px;padding:8px 0";lw.append(E("span","Warn at"),li,E("span","or fewer"));c.append(lw);
+ c.append(B("Save stock count",function(){var o={};SZ.forEach(function(k){o[k]=Number(inp[k].value)||0});db.collection("adminData").doc("stock").set({counts:o,low:Number(li.value)||0,since:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){toast("Stock saved");buildReport()}).catch(function(){toast("Could not save")})}));L.append(c);
+ c=card("Export");c.append(B("Download orders (CSV)",function(){var H=["Order","Date","Name","Phone","Address","Tank","Qty","Brand","Type","Area","Time slot","Payment","Total","Status","Delivered by","Cash collected","Handed in"],R=[H.map(cc).join(",")];
+  O.slice().sort(function(a,b){return(a.d.createdAt?a.d.createdAt.toMillis():0)-(b.d.createdAt?b.d.createdAt.toMillis():0)}).forEach(function(o){var d=o.d;R.push([o.id,d.createdAt?d.createdAt.toDate().toLocaleString("en-PH"):"",d.name,d.phone,d.address,d.tank,d.qty,d.brand,d.type,d.area,d.slot,d.payment,d.total,d.status,d.deliveredByName,d.collected,d.handedIn?"yes":""].map(cc).join(","))});
+  dl("orders-"+RPR+".csv",R.join("\n"))}));L.append(c)}
 /* realtime */
 function watch(){if(watching)return;watching=true;renderChips();
  db.collection("orders").orderBy("createdAt","desc").limit(100).onSnapshot(function(q){
