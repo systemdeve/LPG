@@ -170,7 +170,7 @@ function details(o){var d=o.d,g=E("div",null,"kv"),ph=E("a",d.phone||"-");if(d.p
  var due=/cash/i.test(d.payment||"")?"Collect "+(d.total||""):(d.payment||"")+" - "+(d.total||"");
  g.append(kv("Customer",E("span",d.name||"-")),kv("Phone",ph),kv("Address",ad,true),kv("Order",E("span",(d.tank||"")+" x"+(d.qty||1)+" \u00B7 "+(d.brand||"Any brand")+" \u00B7 "+(d.type||""))),kv("Payment",E("span",due,"tot")));
  if(d.lat!=null)g.append(kv("Customer pin",E("span","Saved. Navigate opens the exact spot."),true));return g}
-function takenBy(o){var t=TRK[o.id];return t&&t.riderUid!==me.uid&&t.updatedAt&&(Date.now()-t.updatedAt.toMillis()<STALE)?t:null}
+function takenBy(o){var t=TRK[o.id];if(t&&t.riderUid!==me.uid&&t.updatedAt&&(Date.now()-t.updatedAt.toMillis()<STALE))return t;var a=o.d.assignedUid;if(a&&a!==me.uid)return{riderName:o.d.assignedName||"another rider",riderUid:a,updatedAt:null,assigned:true};return null}
 
 function render(){var R=$("body");R.textContent="";startBtn=null;
  var mine=ACT.map(function(id){return ORD.filter(function(o){return o.id===id})[0]}).filter(Boolean);
@@ -186,7 +186,7 @@ function render(){var R=$("body");R.textContent="";startBtn=null;
 function updStart(){if(!startBtn)return;var n=ORD.filter(function(o){return SEL[o.id]&&!takenBy(o)}).length;startBtn.textContent=n?"Start delivery ("+n+" order"+(n>1?"s":"")+") & share location":"Select an order to start";startBtn.disabled=!n}
 function availCard(o,haveActive){var t=takenBy(o),c=E("div",null,"c"),h=E("div",null,"oh"),l=E("div");
  l.append(E("div",o.id,"oid"),E("div",o.d.createdAt?o.d.createdAt.toDate().toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"","ot"));
- h.append(l,t?E("span","Taken by "+(t.riderName||"rider"),"tag t-ot"):E("span","Available","tag t-av"));c.append(h,details(o));
+ h.append(l,t?E("span",(t.assigned?"Assigned to ":"Taken by ")+(t.riderName||"rider"),"tag t-ot"):E("span","Available","tag t-av"));c.append(h,details(o));
  var r=E("div",null,"ra");
  if(haveActive){var b=B(t?"Already taken":"Add to my delivery",function(){addOrder(o,b)},"full");b.disabled=!!t;r.append(b)}
  else{var lb=E("label",null,"pick"),cb=E("input");cb.type="checkbox";cb.checked=!!SEL[o.id]&&!t;cb.disabled=!!t;cb.onchange=function(){if(cb.checked&&ORD.filter(function(x){return SEL[x.id]}).length>=MAXB){cb.checked=false;toast("You can carry up to "+MAXB+" orders at once.");return}SEL[o.id]=cb.checked;updStart()};lb.append(cb,E("span",t?"Taken by another rider":"Take this order"));r.append(lb)}
@@ -229,8 +229,22 @@ function paintGps(){var a=$("gA"),s=$("gS"),lv=$("lv"),t=$("lvt");if(!a||!s)retu
 function lock(){if(!("wakeLock" in navigator))return;navigator.wakeLock.request("screen").then(function(w){wake=w;w.addEventListener("release",function(){wake=null})}).catch(function(){})}
 function stopSharing(msg,del){var ids=ACT.slice();killRMap();stopTimers();if(wake){try{wake.release()}catch(x){}wake=null}ACT=[];SEL={};HAD={};SELF={};lastPos=null;lastSent=0;saveAct();
  var p=del?Promise.all(ids.map(function(id){return db.collection("tracking").doc(id).delete().catch(function(){})})):Promise.resolve();render();if(msg)toast(msg);return p}
-function markDelivered(o){if(!confirm("Mark order "+o.id+" as delivered? Make sure you received the payment."))return;
- SELF[o.id]=true;var b=db.batch();b.update(db.collection("orders").doc(o.id),{status:"delivered"});b.update(db.collection("status").doc(o.id),{status:"delivered"});b.delete(db.collection("tracking").doc(o.id));
+function rmoney(t){return Number(String(t||"").replace(/[^\d.]/g,""))||0}
+function podPhoto(file,cb){var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.6))};im.onerror=function(){cb(null)};im.src=fr.result};fr.onerror=function(){cb(null)};fr.readAsDataURL(file)}
+function markDelivered(o){
+ var cash=/^cash/i.test(o.d.payment||"")?rmoney(o.d.total):0,img=null,dg=document.createElement("dialog");
+ dg.style.cssText="border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);max-width:min(420px,92vw);width:100%;padding:18px";
+ var h=E("b","Deliver "+o.id),p=E("p",cash?"Collect \u20B1"+cash.toLocaleString("en-PH")+" in cash from the customer.":"No cash to collect for this order."),lb=E("p","Take a photo of the delivered tank as proof."),
+  f=document.createElement("input"),pv=new Image(),w=E("div");
+ p.style.margin=lb.style.margin="8px 0";f.type="file";f.accept="image/*";f.setAttribute("capture","environment");pv.style.cssText="max-width:100%;max-height:200px;border-radius:10px;margin-top:8px;display:none";
+ var ok=B("Confirm delivered",function(){dg.close();finish(o,img,cash)},"full"),sk=B("Skip photo",function(){if(confirm("Deliver without a proof photo?")){dg.close();finish(o,null,cash)}},"full"),cn=B("Cancel",function(){dg.close()},"full");
+ ok.disabled=true;
+ f.onchange=function(){var x=f.files[0];img=null;ok.disabled=true;pv.style.display="none";if(!x)return;podPhoto(x,function(d){if(!d){toast("Could not read the photo.");return}img=d;pv.src=d;pv.style.display="block";ok.disabled=false})};
+ w.style.cssText="display:grid;gap:8px;margin-top:12px";w.append(ok,sk,cn);dg.append(h,p,lb,f,pv,w);dg.onclose=function(){dg.remove()};document.body.append(dg);dg.showModal()}
+function finish(o,img,cash){SELF[o.id]=true;var ts=firebase.firestore.FieldValue.serverTimestamp(),b=db.batch();
+ b.update(db.collection("orders").doc(o.id),{status:"delivered",deliveredAt:ts,deliveredBy:me.uid,deliveredByName:nm,collected:cash,hasPod:!!img});
+ b.update(db.collection("status").doc(o.id),{status:"delivered"});b.delete(db.collection("tracking").doc(o.id));
+ if(img)b.set(db.collection("pod").doc(o.id),{img:img,orderId:o.id,riderUid:me.uid,createdAt:ts,expireAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+30*864e5))});
  b.commit().then(function(){var left=ACT.filter(function(i){return i!==o.id});if(!left.length){stopSharing("All deliveries done. Great job!",false)}else{ACT=left;saveAct();syncDest();render();toast("Delivered. "+left.length+" left.")}}).catch(function(){delete SELF[o.id];toast("Could not mark delivered. Check your connection and try again.")})}
 
 /* rider's own map: live GPS position + numbered customer pins */
