@@ -877,7 +877,10 @@ function loadAct(){var box=$("myact"),u=window.mlsUser;if(!box||!u||typeof fb!==
   if(!L.length){var n=document.createElement("p");n.className="sub";n.textContent="No active orders right now. Place an order and track it here.";box.append(n);return}
   L.slice(0,5).forEach(function(o){var r=document.createElement("div"),l=document.createElement("div"),a=document.createElement("b"),m=document.createElement("small"),b=document.createElement("button");
    r.className="ma";a.textContent=o.id;m.textContent=(o.d.tank||"")+" x"+(o.d.qty||1)+" · "+LB[o.d.status||"new"];l.append(a,document.createElement("br"),m);
-   b.type="button";b.className="btn";b.style.padding="8px 16px";b.textContent="Track";b.onclick=function(){if(window.mlsTrack)window.mlsTrack(o.id)};r.append(l,b);box.append(r)});
+   b.type="button";b.className="btn";b.style.padding="8px 16px";b.textContent="Track";b.onclick=function(){if(window.mlsTrack)window.mlsTrack(o.id)};var wr=document.createElement("div");wr.style.cssText="display:flex;gap:6px";wr.append(b);
+   if((o.d.status||"new")==="new"){var cb=document.createElement("button");cb.type="button";cb.className="btn ghost";cb.style.padding="8px 14px";cb.textContent="Cancel";
+    cb.onclick=function(){if(!confirm("Cancel order "+o.id+"?"))return;fb().then(function(f){var db=f.firestore(),bt=db.batch();bt.update(db.collection("orders").doc(o.id),{status:"cancelled",cancelReason:"Cancelled by customer"});bt.update(db.collection("status").doc(o.id),{status:"cancelled"});return bt.commit()}).then(function(){loadAct()}).catch(function(){alert("Could not cancel. The shop may have already confirmed this order.")})};wr.append(cb)}
+   r.append(l,wr);box.append(r)});
   if(L.length===1&&!$("ti").value&&window.mlsTrack)window.mlsTrack(L[0].id);
  }).catch(function(){box.textContent=""})}
 B.forEach(function(b){b.onclick=function(){var t=b.getAttribute("data-t");R.classList.toggle("trk",t==="track");sync();if(t==="track")loadAct();tabs.scrollIntoView({behavior:"smooth",block:"start"})}});
